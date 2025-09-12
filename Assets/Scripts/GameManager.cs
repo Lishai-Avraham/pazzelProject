@@ -173,7 +173,7 @@ public class GameManager : MonoBehaviour
   }
 
   // Create all the jigsaw pieces
-  void CreateJigsawPieces(Texture2D jigsawTexture)
+  public void CreateJigsawPieces(Texture2D jigsawTexture)
   {
     // Calculate piece sizes based on the dimensions.
     height = 1f / dimensions.y;

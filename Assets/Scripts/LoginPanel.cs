@@ -32,7 +32,15 @@ public class LoginPanel : MonoBehaviour
 
   public async void OnClickSignUp()
   {
-    await SignUpWithUsernamePasswordAsync(usernameInput.text, passwordInput.text);
+    bool signupSuccess = await SignUpWithUsernamePasswordAsync(usernameInput.text, passwordInput.text);
+    if (signupSuccess)
+    {
+      screenManager.ShowScreen(ModePanelIndex);
+    }
+    else
+    {
+      Debug.Log("Invalid username or password.");
+    }
   }
 
   public async void OnClickSignIn()
@@ -55,12 +63,13 @@ public class LoginPanel : MonoBehaviour
     // await UpdatePasswordAsync(currentPassword.text, newPassword.text);
   }
 
-  private async Task SignUpWithUsernamePasswordAsync(string username, string password)
+  private async Task<bool> SignUpWithUsernamePasswordAsync(string username, string password)
   {
     try
     {
       await AuthenticationService.Instance.SignUpWithUsernamePasswordAsync(username, password);
       Debug.Log("SignUp is successful.");
+      return true;
     }
     catch (AuthenticationException ex)
     {
@@ -79,6 +88,7 @@ public class LoginPanel : MonoBehaviour
       // Handle any other exceptions that may occur
       Debug.Log(ex.Message);
     }
+    return false;
   }
 
   private async Task<bool> SignInWithUsernamePasswordAsync(string username, string password)
