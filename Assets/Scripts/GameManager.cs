@@ -58,6 +58,8 @@ public class GameManager : MonoBehaviour
 
   [Header("UI Elements")]
   [SerializeField] private List<Texture2D> imageTextures;
+  [SerializeField] private Button returnButton;
+  [SerializeField] private ScreenManager screenManager;
   [SerializeField] private Transform levelSelectPanel;
   [SerializeField] private Image levelSelectPrefab;
   [SerializeField] private GameObject playAgainButton;
@@ -73,6 +75,7 @@ public class GameManager : MonoBehaviour
   private Transform draggingPiece = null;
   private Vector3 offset;
   private int piecesCorrect;
+  int ModePanelIndex = 1;
 
   public void StartGame(Texture2D jigsawTexture)
   {
@@ -101,21 +104,21 @@ public class GameManager : MonoBehaviour
 
   async void Start()
   {
-    try
-    {
-      await UnityServices.InitializeAsync();
-      Debug.Log("Unity Services Initialized");
+    // try
+    // {
+    //   await UnityServices.InitializeAsync();
+    //   Debug.Log("Unity Services Initialized");
 
-      if (!AuthenticationService.Instance.IsSignedIn)
-      {
-        Debug.Log("Waiting for user to log in...");
-      }
-    }
-    catch (Exception e)
-    {
-      Debug.LogError("Unity Services failed to initialize: " + e.Message);
-    }
-
+    //   if (!AuthenticationService.Instance.IsSignedIn)
+    //   {
+    //     Debug.Log("Waiting for user to log in...");
+    //   }
+    // }
+    // catch (Exception e)
+    // {
+    //   Debug.LogError("Unity Services failed to initialize: " + e.Message);
+    // }
+    returnButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(OnClickReturn);
     // Create the UI
     foreach (Texture2D texture in imageTextures)
     {
@@ -125,6 +128,10 @@ public class GameManager : MonoBehaviour
       image.GetComponent<Button>().onClick.AddListener(delegate { StartGame(texture); });
       //image.GetComponent<Button>().onClick.AddListener(() => OnImageSelected(texture));
     }
+  }
+  public void OnClickMyPhotos()
+  {
+      screenManager.ShowScreen(ModePanelIndex);
   }
 
   private void OnImageSelected(Texture2D texture)

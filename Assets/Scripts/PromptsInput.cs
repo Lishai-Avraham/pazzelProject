@@ -5,13 +5,16 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Text;
+using Newtonsoft.Json.Linq;
 
 public class PromptsInput : MonoBehaviour
 {
     [SerializeField] private GameManager gameManager;
     [SerializeField] private TMP_InputField messageInput;
     [SerializeField] private Button sendButton;
-
+    [SerializeField] private Button returnButton;
+    [SerializeField] private ScreenManager screenManager;
+    int ModePanelIndex = 1;
     private static readonly HttpClient httpClient = new HttpClient();
 
     const string openaiUrl = "https://api.openai.com/v1/images/generations";
@@ -22,7 +25,10 @@ public class PromptsInput : MonoBehaviour
         // Attach the click handler
         sendButton.onClick.AddListener(OnSendClicked);
     }
-
+    public void OnClickReturn()
+    {
+        screenManager.ShowScreen(ModePanelIndex);
+    }
     public async void OnSendClicked()
     {
         string text = messageInput.text;
@@ -61,8 +67,8 @@ public class PromptsInput : MonoBehaviour
             Debug.Log("OpenAI response: " + result);
 
             // You can parse result JSON here (contains image URL(s))
-            dynamic parsed = JsonConvert.DeserializeObject(result);
-            string imageUrl = parsed.data[0].url;
+            JObject parsed = JObject.Parse(result);
+            string imageUrl = parsed["data"][0]["url"].ToString();
             Debug.Log("Image URL: " + imageUrl);
 
             Texture2D tex = await DownloadImage(imageUrl);
