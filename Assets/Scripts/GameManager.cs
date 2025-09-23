@@ -104,21 +104,8 @@ public class GameManager : MonoBehaviour
 
   async void Start()
   {
-    // try
-    // {
-    //   await UnityServices.InitializeAsync();
-    //   Debug.Log("Unity Services Initialized");
+    returnButton.onClick.AddListener(OnClickReturn);
 
-    //   if (!AuthenticationService.Instance.IsSignedIn)
-    //   {
-    //     Debug.Log("Waiting for user to log in...");
-    //   }
-    // }
-    // catch (Exception e)
-    // {
-    //   Debug.LogError("Unity Services failed to initialize: " + e.Message);
-    // }
-    returnButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(OnClickReturn);
     // Create the UI
     foreach (Texture2D texture in imageTextures)
     {
@@ -129,7 +116,7 @@ public class GameManager : MonoBehaviour
       //image.GetComponent<Button>().onClick.AddListener(() => OnImageSelected(texture));
     }
   }
-  public void OnClickMyPhotos()
+  public void OnClickReturn()
   {
       screenManager.ShowScreen(ModePanelIndex);
   }

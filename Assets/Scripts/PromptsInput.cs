@@ -24,6 +24,7 @@ public class PromptsInput : MonoBehaviour
     {
         // Attach the click handler
         sendButton.onClick.AddListener(OnSendClicked);
+        returnButton.onClick.AddListener(OnClickReturn);
     }
     public void OnClickReturn()
     {
