@@ -5,48 +5,71 @@ using UnityEngine.UI;
 using TMPro;
 using Unity.Services.Core;
 using Unity.Services.Authentication;
+using UnityEngine.Networking;
+using System.Collections;
 
 
-public class InitializationExample : MonoBehaviour
+// public class InitializationExample : MonoBehaviour
+// {
+//   async void Awake()
+//   {
+//     try
+//     {
+//       await UnityServices.InitializeAsync();
+//     }
+//     catch (Exception e)
+//     {
+//       Debug.LogException(e);
+//     }
+//   }
+
+//   // Setup authentication event handlers if desired
+//   void SetupEvents() {
+//   AuthenticationService.Instance.SignedIn += () => {
+//     // Shows how to get a playerID
+//     Debug.Log($"PlayerID: {AuthenticationService.Instance.PlayerId}");
+
+//     // Shows how to get an access token
+//     Debug.Log($"Access Token: {AuthenticationService.Instance.AccessToken}");
+
+//   };
+
+//   AuthenticationService.Instance.SignInFailed += (err) => {
+//     Debug.LogError(err);
+//   };
+
+//   AuthenticationService.Instance.SignedOut += () => {
+//     Debug.Log("Player signed out.");
+//   };
+
+//   AuthenticationService.Instance.Expired += () =>
+//     {
+//         Debug.Log("Player session could not be refreshed and expired.");
+//     };
+//   }
+// }
+
+[System.Serializable]
+public class JigsawPieceData
 {
-  async void Awake()
-  {
-    try
-    {
-      await UnityServices.InitializeAsync();
-    }
-    catch (Exception e)
-    {
-      Debug.LogException(e);
-    }
-  }
-  
-  // Setup authentication event handlers if desired
-  void SetupEvents() {
-  AuthenticationService.Instance.SignedIn += () => {
-    // Shows how to get a playerID
-    Debug.Log($"PlayerID: {AuthenticationService.Instance.PlayerId}");
-
-    // Shows how to get an access token
-    Debug.Log($"Access Token: {AuthenticationService.Instance.AccessToken}");
-
-  };
-
-  AuthenticationService.Instance.SignInFailed += (err) => {
-    Debug.LogError(err);
-  };
-
-  AuthenticationService.Instance.SignedOut += () => {
-    Debug.Log("Player signed out.");
-  };
-
-  AuthenticationService.Instance.Expired += () =>
-    {
-        Debug.Log("Player session could not be refreshed and expired.");
-    };
-  }
+  public int row;
+  public int col;
+  public string image; // base64 string from API
 }
 
+[System.Serializable]
+public class JigsawAPIResponse
+{
+    public string[] pieces;
+}
+
+// [System.Serializable]
+// public class JigsawPieceData
+// {
+//     public string svg_base64; // base64 encoded image from your API
+//     public float x;           // correct local x position
+//     public float y;           // correct local y position
+// }
 
 public class GameManager : MonoBehaviour
 {
@@ -66,6 +89,7 @@ public class GameManager : MonoBehaviour
   [SerializeField] private GameObject emoji;
   [SerializeField] private GameObject difficultyPanel;
   [SerializeField] private TMP_InputField difficultyInput;
+  [SerializeField] private PuzzleAPIManager apiManager;
 
   private Texture2D selectedTexture;
   private List<Transform> pieces;
@@ -91,6 +115,7 @@ public class GameManager : MonoBehaviour
 
     // Create the pieces of the correct size with the correct texture.
     CreateJigsawPieces(jigsawTexture);
+    // apiManager.CreateJigsawFromAPI(jigsawTexture);
 
     // Place the pieces randomly into the visible area.
     Scatter();
@@ -116,9 +141,65 @@ public class GameManager : MonoBehaviour
       //image.GetComponent<Button>().onClick.AddListener(() => OnImageSelected(texture));
     }
   }
+public void CreateJigsawPiecesFromAPI(JigsawAPIResponse puzzleData)
+{
+    if (puzzleData == null || puzzleData.pieces == null || puzzleData.pieces.Length == 0)
+    {
+        Debug.LogError("Puzzle data is null or empty!");
+        return;
+    }
+
+    StartCoroutine(DownloadPiecesAndCreate(puzzleData.pieces));
+}
+
+
+
+private IEnumerator DownloadPiecesAndCreate(string[] urls)
+{
+    pieces = new List<Transform>();
+
+    for (int i = 0; i < urls.Length; i++)
+    {
+        using UnityWebRequest uwr = UnityWebRequestTexture.GetTexture(urls[i]);
+        yield return uwr.SendWebRequest();
+
+        if (uwr.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError($"Failed to download piece {i}: {uwr.error}");
+            continue;
+        }
+
+        Texture2D tex = DownloadHandlerTexture.GetContent(uwr);
+
+        Transform piece = Instantiate(piecePrefab, gameHolder);
+
+        SpriteRenderer sr = piece.GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            sr.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.zero);
+        }
+
+        pieces.Add(piece);
+    }
+
+
+}
+
+
+
+
+
+  private Texture2D LoadTextureFromBase64(string base64)
+  {
+      byte[] imageBytes = System.Convert.FromBase64String(base64);
+      Texture2D tex = new Texture2D(2, 2);
+      tex.LoadImage(imageBytes);
+      return tex;
+  }
+
   public void OnClickReturn()
   {
-      screenManager.ShowScreen(ModePanelIndex);
+    screenManager.ShowScreen(ModePanelIndex);
   }
 
   private void OnImageSelected(Texture2D texture)
