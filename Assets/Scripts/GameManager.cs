@@ -84,28 +84,17 @@ public class GameManager : MonoBehaviour
   {
     Debug.Log("ShowLevelSelect running.");
     // Make sure puzzle pieces are cleared
-    foreach (Transform piece in pieces)
-    {
-        Destroy(piece.gameObject);
-    }
-    pieces.Clear();
-
-    // Hide puzzle-related UI
-    playAgainButton.SetActive(false);
-    emoji.SetActive(false);
-    gameHolder.GetComponent<LineRenderer>().enabled = false;
-
-    // Show level select UI
     levelSelectPanel.gameObject.SetActive(true);
     inlevels = true;
+    
   }
 
 
-  public async void Start()
+  async void Start()
   {
     Debug.Log("start function running.");
-    levelSelectPanel.gameObject.SetActive(true);
-    inlevels = true;
+    // levelSelectPanel.gameObject.SetActive(true);
+    // inlevels = true;
     returnButton.onClick.AddListener(OnClickReturn);
 
     // Create the UI
@@ -113,12 +102,13 @@ public class GameManager : MonoBehaviour
     {
       Image image = Instantiate(levelSelectPrefab, levelSelectPanel);
       image.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.zero);
-      inlevels = false;
+      //inlevels = false;
       // Assign button action
       image.GetComponent<Button>().onClick.AddListener(delegate { StartGame(texture); });
       //image.GetComponent<Button>().onClick.AddListener(() => OnImageSelected(texture));
     }
   }
+
   public void CreateJigsawPiecesFromAPI(JigsawAPIResponse puzzleData)
   {
     if (puzzleData == null || puzzleData.pieces == null || puzzleData.pieces.Length == 0)

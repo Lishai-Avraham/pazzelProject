@@ -113,40 +113,40 @@ public class ImageUploader : MonoBehaviour
 
         for (int row = 0; row < dimensions.y; row++)
         {
-        for (int col = 0; col < dimensions.x; col++)
-        {
-            // Create the piece in the right location of the right size.
-            Transform piece = Instantiate(piecePrefab, gameHolder);
-            piece.localPosition = new Vector3(
-            (-width * dimensions.x / 2) + (width * col) + (width / 2),
-            (-height * dimensions.y / 2) + (height * row) + (height / 2),
-            -1);
-            piece.localScale = new Vector3(width, height, 1f);
-
-            // We don't have to name them, but always useful for debugging.
-            piece.name = $"Piece {(row * dimensions.x) + col}";
-            pieces.Add(piece);
-            if (piece.GetComponent<BoxCollider2D>() == null)
+            for (int col = 0; col < dimensions.x; col++)
             {
-                piece.gameObject.AddComponent<BoxCollider2D>();
-            }
+                // Create the piece in the right location of the right size.
+                Transform piece = Instantiate(piecePrefab, gameHolder);
+                piece.localPosition = new Vector3(
+                (-width * dimensions.x / 2) + (width * col) + (width / 2),
+                (-height * dimensions.y / 2) + (height * row) + (height / 2),
+                -1);
+                piece.localScale = new Vector3(width, height, 1f);
 
-            // Assign the correct part of the texture for this jigsaw piece
-            // We need our width and height both to be normalised between 0 and 1 for the UV.
-            float width1 = 1f / dimensions.x;
-            float height1 = 1f / dimensions.y;
-            // UV coord order is anti-clockwise: (0, 0), (1, 0), (0, 1), (1, 1)
-            Vector2[] uv = new Vector2[4];
-            uv[0] = new Vector2(width1 * col, height1 * row);
-            uv[1] = new Vector2(width1 * (col + 1), height1 * row);
-            uv[2] = new Vector2(width1 * col, height1 * (row + 1));
-            uv[3] = new Vector2(width1 * (col + 1), height1 * (row + 1));
-            // Assign our new UVs to the mesh.
-            Mesh mesh = piece.GetComponent<MeshFilter>().mesh;
-            mesh.uv = uv;
-            // Update the texture on the piece
-            piece.GetComponent<MeshRenderer>().material.SetTexture("_MainTex", jigsawTexture);
-        }
+                // We don't have to name them, but always useful for debugging.
+                piece.name = $"Piece {(row * dimensions.x) + col}";
+                pieces.Add(piece);
+                if (piece.GetComponent<BoxCollider2D>() == null)
+                {
+                    piece.gameObject.AddComponent<BoxCollider2D>();
+                }
+
+                // Assign the correct part of the texture for this jigsaw piece
+                // We need our width and height both to be normalised between 0 and 1 for the UV.
+                float width1 = 1f / dimensions.x;
+                float height1 = 1f / dimensions.y;
+                // UV coord order is anti-clockwise: (0, 0), (1, 0), (0, 1), (1, 1)
+                Vector2[] uv = new Vector2[4];
+                uv[0] = new Vector2(width1 * col, height1 * row);
+                uv[1] = new Vector2(width1 * (col + 1), height1 * row);
+                uv[2] = new Vector2(width1 * col, height1 * (row + 1));
+                uv[3] = new Vector2(width1 * (col + 1), height1 * (row + 1));
+                // Assign our new UVs to the mesh.
+                Mesh mesh = piece.GetComponent<MeshFilter>().mesh;
+                mesh.uv = uv;
+                // Update the texture on the piece
+                piece.GetComponent<MeshRenderer>().material.SetTexture("_MainTex", jigsawTexture);
+            }
         }
     }
 
