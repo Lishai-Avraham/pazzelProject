@@ -11,6 +11,7 @@ public class ModePanel : MonoBehaviour
     [SerializeField] private GameObject AIButton;
     [SerializeField] private GameObject RegularButton;
     [SerializeField] private ScreenManager screenManager;
+    [SerializeField] private GameManager gameManager;  
 
     int myPhotosIndex = 2;
     int aiIndex = 3;

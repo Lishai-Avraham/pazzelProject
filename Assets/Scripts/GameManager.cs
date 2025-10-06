@@ -3,51 +3,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Unity.Services.Core;
-using Unity.Services.Authentication;
 using UnityEngine.Networking;
 using System.Collections;
 
 
-// public class InitializationExample : MonoBehaviour
-// {
-//   async void Awake()
-//   {
-//     try
-//     {
-//       await UnityServices.InitializeAsync();
-//     }
-//     catch (Exception e)
-//     {
-//       Debug.LogException(e);
-//     }
-//   }
-
-//   // Setup authentication event handlers if desired
-//   void SetupEvents() {
-//   AuthenticationService.Instance.SignedIn += () => {
-//     // Shows how to get a playerID
-//     Debug.Log($"PlayerID: {AuthenticationService.Instance.PlayerId}");
-
-//     // Shows how to get an access token
-//     Debug.Log($"Access Token: {AuthenticationService.Instance.AccessToken}");
-
-//   };
-
-//   AuthenticationService.Instance.SignInFailed += (err) => {
-//     Debug.LogError(err);
-//   };
-
-//   AuthenticationService.Instance.SignedOut += () => {
-//     Debug.Log("Player signed out.");
-//   };
-
-//   AuthenticationService.Instance.Expired += () =>
-//     {
-//         Debug.Log("Player session could not be refreshed and expired.");
-//     };
-//   }
-// }
 
 [System.Serializable]
 public class JigsawPieceData
@@ -62,14 +21,6 @@ public class JigsawAPIResponse
 {
     public string[] pieces;
 }
-
-// [System.Serializable]
-// public class JigsawPieceData
-// {
-//     public string svg_base64; // base64 encoded image from your API
-//     public float x;           // correct local x position
-//     public float y;           // correct local y position
-// }
 
 public class GameManager : MonoBehaviour
 {
@@ -100,12 +51,15 @@ public class GameManager : MonoBehaviour
   private Vector3 offset;
   private int piecesCorrect;
   int ModePanelIndex = 1;
+  private bool inlevels = true;
 
   public void StartGame(Texture2D jigsawTexture)
   {
+    Debug.Log("StartGame function running.");
     Debug.Log($"DIFFICULTY = {difficulty}");
     // Hide the UI
     levelSelectPanel.gameObject.SetActive(false);
+    inlevels = false;
 
     // We store a list of the transform for each jigsaw piece so we can track them later.
     pieces = new List<Transform>();
@@ -126,9 +80,32 @@ public class GameManager : MonoBehaviour
     // As we're starting the puzzle there will be no correct pieces.
     piecesCorrect = 0;
   }
-
-  async void Start()
+  public void ShowLevelSelect()
   {
+    Debug.Log("ShowLevelSelect running.");
+    // Make sure puzzle pieces are cleared
+    foreach (Transform piece in pieces)
+    {
+        Destroy(piece.gameObject);
+    }
+    pieces.Clear();
+
+    // Hide puzzle-related UI
+    playAgainButton.SetActive(false);
+    emoji.SetActive(false);
+    gameHolder.GetComponent<LineRenderer>().enabled = false;
+
+    // Show level select UI
+    levelSelectPanel.gameObject.SetActive(true);
+    inlevels = true;
+  }
+
+
+  public async void Start()
+  {
+    Debug.Log("start function running.");
+    levelSelectPanel.gameObject.SetActive(true);
+    inlevels = true;
     returnButton.onClick.AddListener(OnClickReturn);
 
     // Create the UI
@@ -136,77 +113,54 @@ public class GameManager : MonoBehaviour
     {
       Image image = Instantiate(levelSelectPrefab, levelSelectPanel);
       image.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), Vector2.zero);
+      inlevels = false;
       // Assign button action
       image.GetComponent<Button>().onClick.AddListener(delegate { StartGame(texture); });
       //image.GetComponent<Button>().onClick.AddListener(() => OnImageSelected(texture));
     }
   }
-public void CreateJigsawPiecesFromAPI(JigsawAPIResponse puzzleData)
-{
+  public void CreateJigsawPiecesFromAPI(JigsawAPIResponse puzzleData)
+  {
     if (puzzleData == null || puzzleData.pieces == null || puzzleData.pieces.Length == 0)
     {
-        Debug.LogError("Puzzle data is null or empty!");
-        return;
+      Debug.LogError("Puzzle data is null or empty!");
+      return;
     }
 
     StartCoroutine(DownloadPiecesAndCreate(puzzleData.pieces));
-}
+  }
 
 
 
-private IEnumerator DownloadPiecesAndCreate(string[] urls)
-{
+  private IEnumerator DownloadPiecesAndCreate(string[] urls)
+  {
     pieces = new List<Transform>();
 
     for (int i = 0; i < urls.Length; i++)
     {
-        using UnityWebRequest uwr = UnityWebRequestTexture.GetTexture(urls[i]);
-        yield return uwr.SendWebRequest();
+      using UnityWebRequest uwr = UnityWebRequestTexture.GetTexture(urls[i]);
+      yield return uwr.SendWebRequest();
 
-        if (uwr.result != UnityWebRequest.Result.Success)
-        {
-            Debug.LogError($"Failed to download piece {i}: {uwr.error}");
-            continue;
-        }
+      if (uwr.result != UnityWebRequest.Result.Success)
+      {
+        Debug.LogError($"Failed to download piece {i}: {uwr.error}");
+        continue;
+      }
 
-        Texture2D tex = DownloadHandlerTexture.GetContent(uwr);
+      Texture2D tex = DownloadHandlerTexture.GetContent(uwr);
 
-        Transform piece = Instantiate(piecePrefab, gameHolder);
+      Transform piece = Instantiate(piecePrefab, gameHolder);
 
-        SpriteRenderer sr = piece.GetComponent<SpriteRenderer>();
-        if (sr != null)
-        {
-            sr.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.zero);
-        }
+      SpriteRenderer sr = piece.GetComponent<SpriteRenderer>();
+      if (sr != null)
+      {
+        sr.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.zero);
+      }
 
-        pieces.Add(piece);
+      pieces.Add(piece);
     }
-
-
-}
-
-
-
-
-
-  private Texture2D LoadTextureFromBase64(string base64)
-  {
-      byte[] imageBytes = System.Convert.FromBase64String(base64);
-      Texture2D tex = new Texture2D(2, 2);
-      tex.LoadImage(imageBytes);
-      return tex;
   }
 
-  public void OnClickReturn()
-  {
-    screenManager.ShowScreen(ModePanelIndex);
-  }
-
-  private void OnImageSelected(Texture2D texture)
-  {
-    selectedTexture = texture;
-    difficultyPanel.SetActive(true);
-  }
 
   public void OnConfirmInputDifficulty()
   {
@@ -229,8 +183,9 @@ private IEnumerator DownloadPiecesAndCreate(string[] urls)
     }
   }
 
-  Vector2Int GetDimensions(Texture2D jigsawTexture, int difficulty)
+  public Vector2Int GetDimensions(Texture2D jigsawTexture, int difficulty)
   {
+    Debug.Log("GetDimensions function running.");
     Vector2Int dimensions = Vector2Int.zero;
     // Difficulty is the number of pieces on the smallest texture dimension.
     // This helps ensure the pieces are as square as possible.
@@ -250,6 +205,7 @@ private IEnumerator DownloadPiecesAndCreate(string[] urls)
   // Create all the jigsaw pieces
   public void CreateJigsawPieces(Texture2D jigsawTexture)
   {
+    Debug.Log("CreateJigsawPieces function running.");
     // Calculate piece sizes based on the dimensions.
     height = 1f / dimensions.y;
     float aspect = (float)jigsawTexture.width / jigsawTexture.height;
@@ -270,6 +226,10 @@ private IEnumerator DownloadPiecesAndCreate(string[] urls)
         // We don't have to name them, but always useful for debugging.
         piece.name = $"Piece {(row * dimensions.x) + col}";
         pieces.Add(piece);
+        if (piece.GetComponent<BoxCollider2D>() == null)
+        {
+            piece.gameObject.AddComponent<BoxCollider2D>();
+        }
 
         // Assign the correct part of the texture for this jigsaw piece
         // We need our width and height both to be normalised between 0 and 1 for the UV.
@@ -291,8 +251,9 @@ private IEnumerator DownloadPiecesAndCreate(string[] urls)
   }
 
   // Place the pieces randomly in the visible area.
-  private void Scatter()
+  public void Scatter()
   {
+    Debug.Log("Scatter function running.");
     // Calculate the visible orthographic size of the screen.
     float orthoHeight = Camera.main.orthographicSize;
     float screenAspect = (float)Screen.width / Screen.height;
@@ -315,8 +276,9 @@ private IEnumerator DownloadPiecesAndCreate(string[] urls)
   }
 
   // Update the border to fit the chosen puzzle.
-  private void UpdateBorder()
+  public void UpdateBorder()
   {
+    Debug.Log("UpdateBorder function running.");
     LineRenderer lineRenderer = gameHolder.GetComponent<LineRenderer>();
 
     // Calculate half sizes to simplify the code.
@@ -343,6 +305,7 @@ private IEnumerator DownloadPiecesAndCreate(string[] urls)
   // Update is called once per frame
   void Update()
   {
+    // Debug.Log("Update function running.");
     if (Input.GetMouseButtonDown(0))
     {
       RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
@@ -375,6 +338,7 @@ private IEnumerator DownloadPiecesAndCreate(string[] urls)
 
   private void SnapAndDisableIfCorrect()
   {
+    Debug.Log("SnapAndDisableIfCorrect function running.");
     // We need to know the index of the piece to determine it's correct position.
     int pieceIndex = pieces.IndexOf(draggingPiece);
 
@@ -407,6 +371,7 @@ private IEnumerator DownloadPiecesAndCreate(string[] urls)
 
   public void RestartGame()
   {
+    Debug.Log("RestartGame function running.");
     // Destroy all the puzzle pieces.
     foreach (Transform piece in pieces)
     {
@@ -419,5 +384,32 @@ private IEnumerator DownloadPiecesAndCreate(string[] urls)
     playAgainButton.SetActive(false);
     emoji.SetActive(false);
     levelSelectPanel.gameObject.SetActive(true);
+    inlevels = true;
+  }
+  public void OnClickReturn()
+  {
+    Debug.Log("OnClickReturn function running.");
+    if (inlevels == true)
+    {
+      Debug.LogWarning("see levelSelectPanel as true.");
+      levelSelectPanel.gameObject.SetActive(false);
+      inlevels = false;
+      screenManager.ShowScreen(ModePanelIndex);
+    }
+    else
+    {
+      foreach (Transform piece in pieces)
+      {
+        Destroy(piece.gameObject);
+      }
+      pieces.Clear();
+      // Hide the outline
+      gameHolder.GetComponent<LineRenderer>().enabled = false;
+      // Show the level select UI.
+      playAgainButton.SetActive(false);
+      emoji.SetActive(false);
+      levelSelectPanel.gameObject.SetActive(true);
+      inlevels = true;
+    } 
   }
 }
