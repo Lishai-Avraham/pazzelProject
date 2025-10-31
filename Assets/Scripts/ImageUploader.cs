@@ -10,6 +10,7 @@ public class ImageUploader : MonoBehaviour
     public RawImage previewImage; // optional, to preview the image before puzzle
     [SerializeField] private int difficulty = 2;
     [SerializeField] private Transform gameHolder;
+    // [SerializeField] private Transform piecePrefab;
     [SerializeField] private Transform piecePrefab;
     [SerializeField] private Button uploadButton;
     [SerializeField] private Button returnButton;

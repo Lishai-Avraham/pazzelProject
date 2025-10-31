@@ -16,12 +16,6 @@ public class JigsawPieceData
   public string image; // base64 string from API
 }
 
-[System.Serializable]
-public class JigsawAPIResponse
-{
-    public string[] pieces;
-}
-
 public class GameManager : MonoBehaviour
 {
   [Header("Game Elements")]
@@ -60,6 +54,8 @@ public class GameManager : MonoBehaviour
     // Hide the UI
     levelSelectPanel.gameObject.SetActive(false);
     inlevels = false;
+    Debug.Log($"startGame in levels: {inlevels}");
+
 
     // We store a list of the transform for each jigsaw piece so we can track them later.
     pieces = new List<Transform>();
@@ -69,7 +65,6 @@ public class GameManager : MonoBehaviour
 
     // Create the pieces of the correct size with the correct texture.
     CreateJigsawPieces(jigsawTexture);
-    // apiManager.CreateJigsawFromAPI(jigsawTexture);
 
     // Place the pieces randomly into the visible area.
     Scatter();
@@ -86,6 +81,8 @@ public class GameManager : MonoBehaviour
     // Make sure puzzle pieces are cleared
     levelSelectPanel.gameObject.SetActive(true);
     inlevels = true;
+    Debug.Log($"showlevelsrlect in levels: {inlevels}");
+
     
   }
 
@@ -93,9 +90,13 @@ public class GameManager : MonoBehaviour
   async void Start()
   {
     Debug.Log("start function running.");
+    // int piecesToCut = Settings.Instance.pieces;
+    // bool musicOn = Settings.Instance.isMusicOn;
+    // string difficultyName = Settings.Instance.difficulty;
     // levelSelectPanel.gameObject.SetActive(true);
-    // inlevels = true;
-    returnButton.onClick.AddListener(OnClickReturn);
+    inlevels = true;
+    Debug.Log($"start in levels: {inlevels}");
+    // returnButton.onClick.AddListener(OnClickReturn);
 
     // Create the UI
     foreach (Texture2D texture in imageTextures)
@@ -106,48 +107,6 @@ public class GameManager : MonoBehaviour
       // Assign button action
       image.GetComponent<Button>().onClick.AddListener(delegate { StartGame(texture); });
       //image.GetComponent<Button>().onClick.AddListener(() => OnImageSelected(texture));
-    }
-  }
-
-  public void CreateJigsawPiecesFromAPI(JigsawAPIResponse puzzleData)
-  {
-    if (puzzleData == null || puzzleData.pieces == null || puzzleData.pieces.Length == 0)
-    {
-      Debug.LogError("Puzzle data is null or empty!");
-      return;
-    }
-
-    StartCoroutine(DownloadPiecesAndCreate(puzzleData.pieces));
-  }
-
-
-
-  private IEnumerator DownloadPiecesAndCreate(string[] urls)
-  {
-    pieces = new List<Transform>();
-
-    for (int i = 0; i < urls.Length; i++)
-    {
-      using UnityWebRequest uwr = UnityWebRequestTexture.GetTexture(urls[i]);
-      yield return uwr.SendWebRequest();
-
-      if (uwr.result != UnityWebRequest.Result.Success)
-      {
-        Debug.LogError($"Failed to download piece {i}: {uwr.error}");
-        continue;
-      }
-
-      Texture2D tex = DownloadHandlerTexture.GetContent(uwr);
-
-      Transform piece = Instantiate(piecePrefab, gameHolder);
-
-      SpriteRenderer sr = piece.GetComponent<SpriteRenderer>();
-      if (sr != null)
-      {
-        sr.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), Vector2.zero);
-      }
-
-      pieces.Add(piece);
     }
   }
 
@@ -196,6 +155,8 @@ public class GameManager : MonoBehaviour
   public void CreateJigsawPieces(Texture2D jigsawTexture)
   {
     Debug.Log("CreateJigsawPieces function running.");
+    inlevels = false;
+    Debug.Log($"createjigsawpieces in levels: {inlevels}");
     // Calculate piece sizes based on the dimensions.
     height = 1f / dimensions.y;
     float aspect = (float)jigsawTexture.width / jigsawTexture.height;
@@ -375,15 +336,20 @@ public class GameManager : MonoBehaviour
     emoji.SetActive(false);
     levelSelectPanel.gameObject.SetActive(true);
     inlevels = true;
+    Debug.Log($"Restart in levels: {inlevels}");
+
   }
   public void OnClickReturn()
   {
     Debug.Log("OnClickReturn function running.");
-    if (inlevels == true)
+    Debug.Log($"onclick in levels, befor change: {inlevels}");
+
+    if (inlevels)
     {
       Debug.LogWarning("see levelSelectPanel as true.");
       levelSelectPanel.gameObject.SetActive(false);
       inlevels = false;
+      Debug.Log($"onclick when panel was showing after change in levels: {inlevels}");
       screenManager.ShowScreen(ModePanelIndex);
     }
     else
@@ -400,6 +366,8 @@ public class GameManager : MonoBehaviour
       emoji.SetActive(false);
       levelSelectPanel.gameObject.SetActive(true);
       inlevels = true;
+      Debug.Log($"onclick when panel wasn't showing after change in levels: {inlevels}");
+
     } 
   }
 }

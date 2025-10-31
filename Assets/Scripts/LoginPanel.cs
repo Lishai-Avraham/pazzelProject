@@ -11,7 +11,8 @@ public class LoginPanel : MonoBehaviour
   [SerializeField] private TMP_InputField passwordInput;
   [SerializeField] private GameObject loginButton;
   [SerializeField] private GameObject SignupButton;
-  [SerializeField] private GameObject ResetPasswordButton;
+    [SerializeField] private GameObject SettingButton;
+  // [SerializeField] private GameObject ResetPasswordButton;
   [SerializeField] private ScreenManager screenManager;
 
   // [SerializeField] private TextMeshProUGUI errMsgText = default;
@@ -35,6 +36,7 @@ public class LoginPanel : MonoBehaviour
     bool signupSuccess = await SignUpWithUsernamePasswordAsync(usernameInput.text, passwordInput.text);
     if (signupSuccess)
     {
+      SettingButton.SetActive(true);
       screenManager.ShowScreen(ModePanelIndex);
     }
     else
@@ -49,6 +51,7 @@ public class LoginPanel : MonoBehaviour
     bool loginSuccess = await SignInWithUsernamePasswordAsync(usernameInput.text, passwordInput.text);
     if (loginSuccess)
     {
+      SettingButton.SetActive(true);
       screenManager.ShowScreen(ModePanelIndex);
     }
     else
@@ -57,11 +60,11 @@ public class LoginPanel : MonoBehaviour
     }
   }
 
-  public async void OnClickResetrPassword()
-  {
-    Debug.Log("Singing in with username and password.");
-    // await UpdatePasswordAsync(currentPassword.text, newPassword.text);
-  }
+  // public async void OnClickResetrPassword()
+  // {
+  //   Debug.Log("Singing in with username and password.");
+  //   // await UpdatePasswordAsync(currentPassword.text, newPassword.text);
+  // }
 
   private async Task<bool> SignUpWithUsernamePasswordAsync(string username, string password)
   {
@@ -121,25 +124,25 @@ public class LoginPanel : MonoBehaviour
     }
   }
 
-  private async Task UpdatePasswordAsync(string currentPassword, string newPassword)
-  {
-    try
-    {
-      await AuthenticationService.Instance.UpdatePasswordAsync(currentPassword, newPassword);
-      Debug.Log("Password updated.");
-    }
-    catch (AuthenticationException ex)
-    {
-      // Compare error code to AuthenticationErrorCodes
-      // Notify the player with the proper error message
-      Debug.LogException(ex);
-    }
-    catch (RequestFailedException ex)
-    {
-      // Compare error code to CommonErrorCodes
-      // Notify the player with the proper error message
-      Debug.LogException(ex);
-    }
-  }
+  // private async Task UpdatePasswordAsync(string currentPassword, string newPassword)
+  // {
+  //   try
+  //   {
+  //     await AuthenticationService.Instance.UpdatePasswordAsync(currentPassword, newPassword);
+  //     Debug.Log("Password updated.");
+  //   }
+  //   catch (AuthenticationException ex)
+  //   {
+  //     // Compare error code to AuthenticationErrorCodes
+  //     // Notify the player with the proper error message
+  //     Debug.LogException(ex);
+  //   }
+  //   catch (RequestFailedException ex)
+  //   {
+  //     // Compare error code to CommonErrorCodes
+  //     // Notify the player with the proper error message
+  //     Debug.LogException(ex);
+  //   }
+  // }
 }
   
