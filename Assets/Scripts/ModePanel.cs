@@ -41,8 +41,6 @@ public class ModePanel : MonoBehaviour
     }
     public void OnClicksettings()
     {
-        gameManager.ShowLevelSelect();
         screenManager.ShowScreen(settingsIndex);
-        
     }
 }

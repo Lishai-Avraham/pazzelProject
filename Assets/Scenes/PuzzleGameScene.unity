@@ -1260,7 +1260,6 @@ GameObject:
   - component: {fileID: 291423913}
   - component: {fileID: 291423912}
   - component: {fileID: 291423911}
-  - component: {fileID: 291423910}
   m_Layer: 5
   m_Name: SettingButton
   m_TagString: Untagged
@@ -1288,23 +1287,6 @@ RectTransform:
   m_AnchoredPosition: {x: -325, y: 150}
   m_SizeDelta: {x: 30, y: 30}
   m_Pivot: {x: 0, y: 1}
---- !u!114 &291423910
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 291423908}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e2afff65935cd6c42be14ddaf186625b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  settingsPanel: {fileID: 0}
-  musicToggle: {fileID: 0}
-  difficultyDropdown: {fileID: 0}
-  isMusicOn: 1
-  currentDifficulty: 1
 --- !u!114 &291423911
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1349,9 +1331,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 118816118}
-        m_TargetAssemblyTypeName: GameSettingsManager, Assembly-CSharp
-        m_MethodName: ToggleSettingsPanel
+      - m_Target: {fileID: 1771562945}
+        m_TargetAssemblyTypeName: ModePanel, Assembly-CSharp
+        m_MethodName: OnClicksettings
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3843,6 +3825,53 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 568153941}
   m_CullTransparentMesh: 1
+--- !u!1 &584561485
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 584561487}
+  - component: {fileID: 584561486}
+  m_Layer: 0
+  m_Name: SettingsManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &584561486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 584561485}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8646db075be5b746ab90162bb833432, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isMusicOn: 1
+  difficulty: Easy
+  pieces: 2
+--- !u!4 &584561487
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 584561485}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 519.88336, y: 368.63586, z: 1.0360079}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &591945257
 GameObject:
   m_ObjectHideFlags: 0
@@ -4051,19 +4080,7 @@ MonoBehaviour:
   m_Group: {fileID: 0}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 118816118}
-        m_TargetAssemblyTypeName: GameSettingsManager, Assembly-CSharp
-        m_MethodName: SetMusic
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   m_IsOn: 1
 --- !u!1 &646109090
 GameObject:
@@ -8848,7 +8865,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1761379982
 RectTransform:
   m_ObjectHideFlags: 0
@@ -8923,11 +8940,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70deca85d09d04e49aca8824a066b69e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  musicToggle: {fileID: 0}
-  difficultyDropdown: {fileID: 0}
-  saveButton: {fileID: 0}
-  screenManager: {fileID: 0}
-  backgroundMusic: {fileID: 0}
+  musicToggle: {fileID: 612377217}
+  difficultyDropdown: {fileID: 2127158414}
+  saveButton: {fileID: 506494177}
+  screenManager: {fileID: 37246134}
+  backgroundMusic: {fileID: 1754240611}
   modeIndex: 1
 --- !u!1 &1765412199
 GameObject:
@@ -11298,19 +11315,7 @@ MonoBehaviour:
       m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_OnValueChanged:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 118816118}
-        m_TargetAssemblyTypeName: GameSettingsManager, Assembly-CSharp
-        m_MethodName: SetDifficulty
-        m_Mode: 3
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   m_AlphaFadeSpeed: 0.15
 --- !u!224 &2127158415
 RectTransform:
@@ -11392,3 +11397,4 @@ SceneRoots:
   - {fileID: 268296680}
   - {fileID: 37246135}
   - {fileID: 118816119}
+  - {fileID: 584561487}

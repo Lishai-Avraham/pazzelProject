@@ -10,6 +10,9 @@ public class Settings : MonoBehaviour
 
     private void Awake()
     {
+        // TEMPORARY – run ONCE to reset old bad values
+        PlayerPrefs.DeleteAll();
+
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -17,7 +20,7 @@ public class Settings : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject); // persists if you ever add scenes
+        DontDestroyOnLoad(gameObject);
         LoadSettings();
     }
 

@@ -90,9 +90,9 @@ public class GameManager : MonoBehaviour
   async void Start()
   {
     Debug.Log("start function running.");
-    // int piecesToCut = Settings.Instance.pieces;
-    // bool musicOn = Settings.Instance.isMusicOn;
-    // string difficultyName = Settings.Instance.difficulty;
+    int piecesToCut = Settings.Instance.pieces;
+    bool musicOn = Settings.Instance.isMusicOn;
+    string difficultyName = Settings.Instance.difficulty;
     // levelSelectPanel.gameObject.SetActive(true);
     inlevels = true;
     Debug.Log($"start in levels: {inlevels}");
