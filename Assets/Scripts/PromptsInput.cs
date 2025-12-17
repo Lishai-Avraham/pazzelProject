@@ -294,7 +294,7 @@ public class PromptsInput : MonoBehaviour
             if (tex != null)
             {
                 Debug.Log("Image decoded successfully, creating jigsaw...");
-                gameManager.CreateJigsawPieces(tex);
+                //gameManager.CreateJigsawPieces(tex);
             }
         }
         catch (System.Exception ex)
