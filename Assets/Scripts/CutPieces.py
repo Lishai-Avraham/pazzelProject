@@ -6,6 +6,7 @@ import random
 
 app = Flask(__name__)
 
+# --- פונקציית העזר ליצירת המסכה (לא השתנתה) ---
 def create_puzzle_piece_mask(size, left, top, right, bottom, tab_radius):
     padding = int(tab_radius * 3)
     width, height = size
@@ -41,6 +42,10 @@ def create_puzzle_piece_mask(size, left, top, right, bottom, tab_radius):
 @app.route('/cut_puzzle', methods=['POST'])
 def cut_puzzle():
     try:
+        # חזרנו לשיטה הישנה והטובה: קבלת קובץ ולא טקסט
+        if 'image' not in request.files:
+            return jsonify({"status": "error", "message": "No image file provided"}), 400
+            
         file = request.files['image']
         rows = int(request.form.get('rows', 2))
         cols = int(request.form.get('cols', 2))
@@ -69,15 +74,13 @@ def cut_puzzle():
                 edge_top = -v_edges[r][c]
                 edge_bottom = v_edges[r+1][c]
 
-                # מקבלים גם את הגודל הסופי של המסכה
                 mask, padding, final_w, final_h = create_puzzle_piece_mask(
                     (piece_w, piece_h), 
                     edge_left, edge_top, edge_right, edge_bottom, 
                     tab_radius
                 )
 
-                # --- חישוב היחס המדויק ליוניטי ---
-                # זה המספר המדויק שאומר פי כמה החלק "התנפח" בגלל השוליים
+                # חישוב יחס הגדלה (זה התיקון החשוב)
                 scale_x = final_w / piece_w
                 scale_y = final_h / piece_h
 
@@ -105,15 +108,17 @@ def cut_puzzle():
 
                 pieces_data.append({
                     "row": r, "col": c,
-                    "image_data": img_str,
+                    "image": img_str,
                     "width": piece_img.width, "height": piece_img.height,
-                    "scale_x": scale_x, # שולחים את היחס ליוניטי
+                    "scale_x": scale_x, 
                     "scale_y": scale_y
                 })
 
-        return jsonify({"status": "success", "pieces": pieces_data})
+        # מחזירים רק את החלקים במבנה פשוט שיוניטי אוהב
+        return jsonify({"pieces": pieces_data})
 
     except Exception as e:
+        print(f"Server Error: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':

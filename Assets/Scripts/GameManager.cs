@@ -211,35 +211,36 @@ public class GameManager : MonoBehaviour
   {
       Debug.Log("StartGame Running...");
       
-      // כיבוי הפאנל
       if (levelSelectPanel != null) levelSelectPanel.gameObject.SetActive(false);
-      inlevels = false;
       
       pieces = new List<Transform>(); 
       piecesCorrect = 0;
+      selectedTexture = jigsawTexture;
 
+      // ניקוי חלקים ישנים
       foreach(Transform child in gameHolder) Destroy(child.gameObject);
 
-      // חישוב שורות ועמודות (מינימום 2)
+      // חישוב גריד
       int calculated = (int)Mathf.Sqrt(difficulty);
       int rows = Mathf.Max(2, calculated); 
       int cols = rows;
-      
       dimensions = new Vector2Int(cols, rows);
 
+      // בקשת החלקים מהפייתון
       pythonGenerator.RequestPieces(jigsawTexture, rows, cols, gameHolder, piecePrefab, (generatedPieces) => {
           this.pieces = generatedPieces;
           
-          // --- התיקון הקריטי למסגרת ולרווחים ---
-          // לוקחים את הגודל המדויק שחושב לפי צורת התמונה
+          // --- שינוי חשוב: שמירת הגודל המדויק מהסקריפט שיצר אותם ---
           width = pythonGenerator.FinalPieceWidth;
           height = pythonGenerator.FinalPieceHeight;
           
           float totalPuzzleWidth = width * cols;
           float totalPuzzleHeight = height * rows;
 
-          // שולחים את הגודל הנכון למסגרת
+          // יצירת המסגרת עם הגודל הכולל הנכון
           UpdateBorder(totalPuzzleWidth, totalPuzzleHeight);  
+          
+          // פיזור החלקים
           Scatter();       
       });
   }
@@ -398,18 +399,16 @@ public class GameManager : MonoBehaviour
       float screenHeight = Camera.main.orthographicSize * 2f;
       float screenWidth = screenHeight * Camera.main.aspect;
 
-      float margin = 1.0f; // רווח מהקצה
+      float margin = width; // משאירים מקום של חתיכה אחת מהקצה
       float safeX = (screenWidth / 2) - margin;
       float safeY = (screenHeight / 2) - margin;
 
       foreach (Transform piece in pieces)
       {
-          // --- התיקון: שימוש ב-UnityEngine.Random ---
           float randomX = UnityEngine.Random.Range(-safeX, safeX);
           float randomY = UnityEngine.Random.Range(-safeY, safeY);
-          // ------------------------------------------
 
-          // מיקום בטוח בתוך המסך, ו-Z=-5 כדי שיהיה מעל הרקע
+          // Z=-5 מבטיח שהחלקים יהיו מעל הרקע (שהוא בדרך כלל ב-0)
           piece.localPosition = new Vector3(randomX, randomY, -5.0f);
           
           Collider2D col = piece.GetComponent<Collider2D>();
@@ -446,23 +445,35 @@ public class GameManager : MonoBehaviour
   public void UpdateBorder(float totalWidth, float totalHeight)
   {
       LineRenderer lineRenderer = gameHolder.GetComponent<LineRenderer>();
-      if (lineRenderer == null) return;
+      if (lineRenderer == null) {
+          lineRenderer = gameHolder.gameObject.AddComponent<LineRenderer>();
+      }
+
+      // הגדרת חומר בסיסי כדי שהקו ייראה
+      if (lineRenderer.material == null) {
+          lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+          lineRenderer.startColor = Color.white;
+          lineRenderer.endColor = Color.white;
+      }
 
       float halfWidth = totalWidth / 2f;
       float halfHeight = totalHeight / 2f;
-      float borderZ = 0.0f; // שמים את המסגרת ברקע (0)
+      float borderZ = -1.0f; 
 
       lineRenderer.positionCount = 4;
       lineRenderer.loop = true;
+      lineRenderer.useWorldSpace = false;
+      
+      // --- התיקון: וידוא שהקו מצויר מעל הכל ---
+      lineRenderer.sortingOrder = 20; // מספר גבוה כדי להיות מעל הרקע והחלקים
 
-      // סדר הנקודות: שמאל-למעלה, ימין-למעלה, ימין-למטה, שמאל-למטה
       lineRenderer.SetPosition(0, new Vector3(-halfWidth, halfHeight, borderZ));
       lineRenderer.SetPosition(1, new Vector3(halfWidth, halfHeight, borderZ));
       lineRenderer.SetPosition(2, new Vector3(halfWidth, -halfHeight, borderZ));
       lineRenderer.SetPosition(3, new Vector3(-halfWidth, -halfHeight, borderZ));
 
-      lineRenderer.startWidth = 0.1f;
-      lineRenderer.endWidth = 0.1f;
+      lineRenderer.startWidth = 0.15f;
+      lineRenderer.endWidth = 0.15f;
       lineRenderer.enabled = true;
   }
 
@@ -535,33 +546,29 @@ public class GameManager : MonoBehaviour
 
   private void SnapAndDisableIfCorrect()
   {
-      // Safety check
       if (draggingPiece == null || pieces.Count == 0) return;
 
       int pieceIndex = pieces.IndexOf(draggingPiece);
-
-      // This math works now because 'dimensions' is set in StartGame
       int col = pieceIndex % dimensions.x;
       int row = pieceIndex / dimensions.x;
 
-      // This math works now because 'width' and 'height' are set in StartGame
-      // Note: We use the same grid logic as the Python generator (roughly centered on 0,0)
-      float targetX = (-(dimensions.x - 1) * width) / 2 + (col * width);
-      float puzzleTopBorder = (dimensions.y * height) / 2;
-      float firstRowCenter = puzzleTopBorder - (height / 2);
-      float targetY = firstRowCenter - (row * height);
+      // חישוב המיקום הנכון - מבוסס על גודל הגריד ומרכוז סביב ה-0,0
+      // הנוסחה הזו מניחה שה-GameHolder נמצא ב-0,0,0
+      float startX = -((dimensions.x * width) / 2) + (width / 2);
+      float startY = ((dimensions.y * height) / 2) - (height / 2);
+
+      float targetX = startX + (col * width);
+      float targetY = startY - (row * height);
+
       Vector2 targetPosition = new Vector2(targetX, targetY);
 
-      // Check distance
       if (Vector2.Distance(draggingPiece.localPosition, targetPosition) < (width / 2))
       {
-          // Snap
-          draggingPiece.localPosition = targetPosition;
-
-          // --- FIX 3: Use generic Collider2D (Works for Box OR Polygon) ---
+          // --- תיקון: Z=0 כשהחלק במקום, כדי שיהיה מתחת לחלקים שעדיין גוררים ---
+          draggingPiece.localPosition = new Vector3(targetX, targetY, 0f); 
+          
           Collider2D col2D = draggingPiece.GetComponent<Collider2D>();
           if(col2D != null) col2D.enabled = false;
-          // ---------------------------------------------------------------
 
           piecesCorrect++;
           if (piecesCorrect == pieces.Count)

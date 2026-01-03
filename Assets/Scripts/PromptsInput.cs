@@ -1,224 +1,38 @@
-// using UnityEngine;
-// using UnityEngine.UI;
-// using TMPro;
-// using System.Net.Http;
-// using System.Threading.Tasks;
-// using Newtonsoft.Json;
-// using System.Text;
-// using Newtonsoft.Json.Linq;
-
-// public class PromptsInput : MonoBehaviour
-// {
-//     [SerializeField] private GameManager gameManager;
-//     [SerializeField] private TMP_InputField messageInput;
-//     [SerializeField] private Button sendButton;
-//     [SerializeField] private Button returnButton;
-//     [SerializeField] private ScreenManager screenManager;
-//     int ModePanelIndex = 1;
-//     private static readonly HttpClient httpClient = new HttpClient();
-
-//     const string geminiURL = "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:generateImages";
-//     private string apiKey = "AIzaSyClKQniZM7Z4lmtBIsXeB3I9PMln3Ts1X0"; // TODO: Replace with your actual OpenAI API key
-
-//     void Start()
-//     {
-//         // Attach the click handler
-//         sendButton.onClick.AddListener(OnSendClicked);
-//         returnButton.onClick.AddListener(OnClickReturn);
-//     }
-//     public void OnClickReturn()
-//     {
-//         screenManager.ShowScreen(ModePanelIndex);
-//     }
-//     public async void OnSendClicked()
-//     {
-//         string text = messageInput.text;
-//         if (string.IsNullOrEmpty(text))
-//         {
-//             Debug.Log("Empty input, please enter an image description");
-//             return;
-//         }
-
-//         await ProcessMessage(text);
-//         messageInput.text = "";
-//     }
-
-//     // private async Task ProcessMessage(string msg)
-//     // {
-//     //     Debug.Log("Sending prompt to OpenAI: " + msg);
-
-//     //     var requestBody = new
-//     //     {
-//     //         requests = new[]
-//     //         {
-//     //             new
-//     //             {
-//     //                 prompt = new { text = msg },
-//     //                 imageConfig = new
-//     //                 {
-//     //                     numberOfImages = 1,
-//     //                     aspectRatio = "1:1"
-//     //                 }
-//     //             }
-//     //         }
-//     //     };
-
-//     //     string json = JsonConvert.SerializeObject(requestBody);
-//     //     var request = new HttpRequestMessage(HttpMethod.Post, geminiURL + $"?key={apiKey}");
-//     //     // request.Headers.Add("Authorization", $"Bearer {apiKey}");
-//     //     request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-
-//     //     try
-//     //     {
-//     //         HttpResponseMessage response = await httpClient.SendAsync(request);
-//     //         string result = await response.Content.ReadAsStringAsync();
-
-//     //         Debug.Log("OpenAI response: " + result);
-
-//     //         // You can parse result JSON here (contains image URL(s))
-//     //         JObject parsed = JObject.Parse(result);
-//     //         // string imageUrl = parsed["data"][0]["url"].ToString();
-//     //         // Debug.Log("Image URL: " + imageUrl);
-//     //         string base64Image = parsed["generated_images"][0]["image"]["image_bytes"].ToString();
-
-//     //         // Texture2D tex = await DownloadImage(imageUrl);
-//     //         Texture2D tex = DecodeBase64(base64Image);
-
-//     //         if (tex != null)
-//     //         {
-//     //             Debug.Log("Image downloaded, creating jigsaw...");
-//     //             gameManager.CreateJigsawPieces(tex);
-//     //         }
-//     //     }
-//     //     catch (System.Exception ex)
-//     //     {
-//     //         Debug.LogError("Error sending request: " + ex.Message);
-//     //     }
-//     // }
-
-//     private async Task ProcessMessage(string msg)
-//     {
-//         Debug.Log("Sending prompt to Gemini Image model: " + msg);
-
-//         string modelUrl = "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict";
-
-
-//         var requestBody = new
-//         {
-//             prompt = msg,
-//             number_of_images = 1,
-//             output_mime_type = "image/jpeg",
-//             aspect_ratio = "1:1"
-//         };
-
-//         string json = JsonConvert.SerializeObject(requestBody);
-//         var request = new HttpRequestMessage(HttpMethod.Post, modelUrl + $"?key={apiKey}");
-//         request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-
-//         try
-//         {
-//             HttpResponseMessage response = await httpClient.SendAsync(request);
-//             string result = await response.Content.ReadAsStringAsync();
-
-//             if (!response.IsSuccessStatusCode)
-//             {
-//                 Debug.LogError($"API Error: {response.StatusCode}");
-//                 Debug.LogError($"Response Content: {result}");
-//                 return;
-//             }
-
-//             Debug.Log("Imagen API response: " + result);
-
-//             JObject parsed = JObject.Parse(result);
-            
-//             // ✅ CORRECTED: The Imagen response contains a 'generated_images' array.
-//             // This is different from the Gemini response structure.
-//             var imagesArray = parsed["generated_images"];
-//             if (imagesArray == null || !imagesArray.HasValues)
-//             {
-//                 Debug.LogError("No images found in the API response.");
-//                 return;
-//             }
-
-//             string base64Image = imagesArray[0]["image"]["image_bytes"].ToString();
-
-//             Texture2D tex = DecodeBase64(base64Image);
-
-//             if (tex != null)
-//             {
-//                 Debug.Log("Image decoded, creating jigsaw...");
-//                 gameManager.CreateJigsawPieces(tex);
-//             }
-//         }
-//         catch (System.Exception ex)
-//         {
-//             Debug.LogError("Error during API call: " + ex.Message);
-//         }
-//     }
-
-//     private async Task<Texture2D> DownloadImage(string url)
-//     {
-//         try
-//         {
-//             HttpResponseMessage imgResponse = await httpClient.GetAsync(url);
-//             byte[] imgData = await imgResponse.Content.ReadAsByteArrayAsync();
-
-//             Texture2D tex = new Texture2D(2, 2);
-//             tex.LoadImage(imgData); // Decode PNG/JPG
-//             return tex;
-//         }
-//         catch (System.Exception ex)
-//         {
-//             Debug.LogError("Error downloading image: " + ex.Message);
-//             return null;
-//         }
-//     }
-    
-//     private Texture2D DecodeBase64(string base64)
-//     {
-//         try
-//         {
-//             // Convert the Base64 string to a byte array
-//             byte[] imgData = System.Convert.FromBase64String(base64);
-
-//             // Create a new Texture2D and load the image data
-//             Texture2D tex = new Texture2D(2, 2);
-//             tex.LoadImage(imgData); // Decode PNG/JPG
-//             return tex;
-//         }
-//         catch (System.Exception ex)
-//         {
-//             Debug.LogError("Error decoding Base64 image: " + ex.Message);
-//             return null;
-//         }
-//     }
-// }
-
-
-
-
-
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Collections;
+using UnityEngine.Networking;
 using Newtonsoft.Json;
 using System.Text;
 using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
 public class PromptsInput : MonoBehaviour
 {
-    [SerializeField] private GameManager gameManager;
     [SerializeField] private TMP_InputField messageInput;
     [SerializeField] private Button sendButton;
     [SerializeField] private Button returnButton;
     [SerializeField] private ScreenManager screenManager;
+    [SerializeField] private PythonJigsawGenerator pythonGenerator;
+    [SerializeField] private Transform gameHolder;
+    [SerializeField] private GameObject piecePrefab; 
+    [SerializeField] private GameObject playAgainButton;
+    [SerializeField] private GameObject emoji;
 
-    private static readonly HttpClient httpClient = new HttpClient();
-    private string apiKey = "AIzaSyClKQniZM7Z4lmtBIsXeB3I9PMln3Ts1X0";
-    private const string MODEL_URL = "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict";
+
+    private List<Transform> pieces;
+    private Vector2Int dimensions;
+    private float width;
+    private float height;
+    private Transform draggingPiece = null;
+    private Vector3 offset;
+    private int piecesCorrect;
+
     int ModePanelIndex = 1;
+    int difficulty = 4; // ברירת מחדל
 
     void Start()
     {
@@ -226,96 +40,308 @@ public class PromptsInput : MonoBehaviour
         returnButton.onClick.AddListener(OnClickReturn);
     }
 
-    public void OnClickReturn()
-    {
-        screenManager.ShowScreen(ModePanelIndex);
-    }
-
-    public async void OnSendClicked()
+    public void OnSendClicked()
     {
         string prompt = messageInput.text;
         if (string.IsNullOrEmpty(prompt))
         {
-            Debug.Log("Empty input, please enter an image description");
+            Debug.Log("Empty input");
             return;
         }
 
-        await GenerateImage(prompt);
-        messageInput.text = "";
+        // ביטול הכפתור כדי שלא ילחצו פעמיים
+        sendButton.interactable = false;
+        sendButton.gameObject.SetActive(false);
+        messageInput.gameObject.SetActive(false);
+        
+        // התחלת התהליך (קורוטינה עדיפה ביוניטי להורדת תמונות)
+        StartCoroutine(GenerateImagePollinations(prompt));
     }
 
-    private async Task GenerateImage(string prompt)
+    // פונקציה המשתמשת ב-API החינמי של Pollinations
+    // IEnumerator GenerateImagePollinations(string prompt)
+    // {
+    //     Debug.Log($"Generating image for: {prompt}");
+
+    //     // בניית הכתובת. אנחנו מבקשים תמונה ריבועית (1024x1024)
+    //     // UnityWebRequest.EscapeURL הופך רווחים ל-%20 וכו'
+    //     string url = "https://image.pollinations.ai/prompt/" + UnityWebRequest.EscapeURL(prompt) + "?width=1024&height=1024&nologo=true&model=flux";
+
+    //     // שימוש ב-UnityWebRequest להורדת התמונה (יותר פשוט מ-HttpClient)
+    //     using (UnityWebRequest uwr = UnityWebRequestTexture.GetTexture(url))
+    //     {
+    //         yield return uwr.SendWebRequest();
+
+    //         if (uwr.result != UnityWebRequest.Result.Success)
+    //         {
+    //             Debug.LogError("Error downloading image: " + uwr.error);
+    //         }
+    //         else
+    //         {
+    //             Debug.Log("Image downloaded successfully!");
+
+    //             // המרת המידע לטקסטורה
+    //             Texture2D tex = DownloadHandlerTexture.GetContent(uwr);
+                
+    //             if (tex != null)
+    //             {
+    //                 tex.name = "AI_Generated_" + prompt;
+                    
+    //                 // שליחת התמונה למשחק
+    //                 StartGame(tex);
+                    
+    //                 // ניקוי השדה
+    //                 messageInput.text = "";
+    //             }
+    //         }
+    //     }
+        
+    //     // החזרת הכפתור לפעולה
+    //     sendButton.interactable = true;
+    // }
+    IEnumerator GenerateImagePollinations(string prompt)
     {
-        Debug.Log($"Sending image generation request for: {prompt}");
+        // 1. אנחנו לא נוגעים בטקסט! משאירים אותו נקי כדי לא לשבור את השרת
+        // רק דואגים שרווחים יהפכו לסימנים תקינים
+        string safePrompt = UnityWebRequest.EscapeURL(prompt);
 
-        // Match the exact REST structure from your curl example
-        var requestBody = new
+        // 2. מגרילים מספר בשביל הגיוון
+        int randomSeed = Random.Range(1, 999);
+
+        // 3. בונים את הכתובת עם הפרמטרים הנכונים:
+        // model=turbo -> מכריח שימוש במודל שעובד (ולא flux שקורס בבקשות חדשות)
+        // seed=... -> נותן את הגיוון בלי לשנות את הטקסט
+        string url = "https://image.pollinations.ai/prompt/" + safePrompt + 
+                     "?model=turbo" + 
+                     "&seed=" + randomSeed + 
+                     "&width=1024&height=1024&nologo=true";
+
+        Debug.Log("Generated URL: " + url);
+
+        using (UnityWebRequest uwr = UnityWebRequestTexture.GetTexture(url))
         {
-            instances = new[]
+            yield return uwr.SendWebRequest();
+
+            if (uwr.result == UnityWebRequest.Result.Success)
             {
-                new { prompt = prompt }
-            },
-            parameters = new
-            {
-                sampleCount = 1 // Number of images to generate
+                Texture2D tex = DownloadHandlerTexture.GetContent(uwr);
+                
+                if (tex != null)
+                {
+                    tex.name = "AI_" + prompt;
+                    StartGame(tex);
+                    messageInput.text = "";
+                }
             }
-        };
-
-        string json = JsonConvert.SerializeObject(requestBody);
-        var request = new HttpRequestMessage(HttpMethod.Post, MODEL_URL + $"?key={apiKey}");
-        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        try
-        {
-            HttpResponseMessage response = await httpClient.SendAsync(request);
-            string result = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
+            else
             {
-                Debug.LogError($"API Error: {response.StatusCode}");
-                Debug.LogError($"Response Content: {result}");
-                return;
-            }
-
-            Debug.Log("Imagen API Response: " + result);
-
-            JObject parsed = JObject.Parse(result);
-            var images = parsed["predictions"]?[0]?["generated_images"];
-
-            if (images == null || !images.HasValues)
-            {
-                Debug.LogError("No generated images found in the response.");
-                return;
-            }
-
-            string base64Image = images[0]["image"]["image_bytes"].ToString();
-            Texture2D tex = DecodeBase64(base64Image);
-
-            if (tex != null)
-            {
-                Debug.Log("Image decoded successfully, creating jigsaw...");
-                //gameManager.CreateJigsawPieces(tex);
+                Debug.LogError("Error: " + uwr.error + " | Server: " + uwr.downloadHandler.text);
             }
         }
-        catch (System.Exception ex)
+        
+        sendButton.interactable = true;
+    }
+
+    public void StartGame(Texture2D jigsawTexture)
+    {
+        Debug.Log("StartGame Running...");
+        
+        pieces = new List<Transform>(); 
+        piecesCorrect = 0;
+
+        foreach(Transform child in gameHolder) Destroy(child.gameObject);
+
+        int calculated = (int)Mathf.Sqrt(difficulty);
+        int rows = Mathf.Max(2, calculated); 
+        int cols = rows;
+        
+        dimensions = new Vector2Int(cols, rows);
+
+        pythonGenerator.RequestPieces(jigsawTexture, rows, cols, gameHolder, piecePrefab, (generatedPieces) => {
+            this.pieces = generatedPieces;
+            
+            width = pythonGenerator.FinalPieceWidth;
+            height = pythonGenerator.FinalPieceHeight;
+            
+            float totalPuzzleWidth = width * cols;
+            float totalPuzzleHeight = height * rows;
+
+            UpdateBorder(totalPuzzleWidth, totalPuzzleHeight);  
+            Scatter();       
+        });
+    }
+
+
+    public Vector2Int GetDimensions(Texture2D jigsawTexture, int difficulty)
+    {
+        Debug.Log("GetDimensions function running.");
+        Vector2Int dimensions = Vector2Int.zero;
+        // Difficulty is the number of pieces on the smallest texture dimension.
+        // This helps ensure the pieces are as square as possible.
+        if (jigsawTexture.width < jigsawTexture.height)
         {
-            Debug.LogError("Error during API call: " + ex.Message);
+        dimensions.x = difficulty;
+        dimensions.y = (difficulty * jigsawTexture.height) / jigsawTexture.width;
+        }
+        else
+        {
+        dimensions.x = (difficulty * jigsawTexture.width) / jigsawTexture.height;
+        dimensions.y = difficulty;
+        }
+        return dimensions;
+    }
+
+    void Scatter()
+    {
+        // חישוב גבולות המסך כדי שהחלקים לא יצאו החוצה
+        float screenHeight = Camera.main.orthographicSize * 2f;
+        float screenWidth = screenHeight * Camera.main.aspect;
+
+        float margin = 1.0f; // רווח מהקצה
+        float safeX = (screenWidth / 2) - margin;
+        float safeY = (screenHeight / 2) - margin;
+
+        foreach (Transform piece in pieces)
+        {
+            float randomX = UnityEngine.Random.Range(-safeX, safeX);
+            float randomY = UnityEngine.Random.Range(-safeY, safeY);
+
+            piece.localPosition = new Vector3(randomX, randomY, -5.0f);
+            
+            Collider2D col = piece.GetComponent<Collider2D>();
+            if(col != null) col.enabled = true;
         }
     }
 
-    private Texture2D DecodeBase64(string base64)
+    public void UpdateBorder(float totalWidth, float totalHeight)
     {
-        try
+        LineRenderer lineRenderer = gameHolder.GetComponent<LineRenderer>();
+        if (lineRenderer == null) return;
+
+        float halfWidth = totalWidth / 2f;
+        float halfHeight = totalHeight / 2f;
+        float borderZ = 0.0f; // שמים את המסגרת ברקע (0)
+
+        lineRenderer.positionCount = 4;
+        lineRenderer.loop = true;
+
+        // סדר הנקודות: שמאל-למעלה, ימין-למעלה, ימין-למטה, שמאל-למטה
+        lineRenderer.SetPosition(0, new Vector3(-halfWidth, halfHeight, borderZ));
+        lineRenderer.SetPosition(1, new Vector3(halfWidth, halfHeight, borderZ));
+        lineRenderer.SetPosition(2, new Vector3(halfWidth, -halfHeight, borderZ));
+        lineRenderer.SetPosition(3, new Vector3(-halfWidth, -halfHeight, borderZ));
+
+        lineRenderer.startWidth = 0.1f;
+        lineRenderer.endWidth = 0.1f;
+        lineRenderer.enabled = true;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        // Debug.Log("Update function running.");
+        if (Input.GetMouseButtonDown(0))
         {
-            byte[] imgData = System.Convert.FromBase64String(base64);
-            Texture2D tex = new Texture2D(2, 2);
-            tex.LoadImage(imgData);
-            return tex;
-        }
-        catch (System.Exception ex)
+        RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
+        if (hit)
         {
-            Debug.LogError("Error decoding Base64 image: " + ex.Message);
-            return null;
+            // Everything is moveable, so we don't need to check it's a Piece.
+            draggingPiece = hit.transform;
+            offset = draggingPiece.position - Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            offset += Vector3.back;
         }
+        }
+
+        // When we release the mouse button stop dragging.
+        if (draggingPiece && Input.GetMouseButtonUp(0))
+        {
+        SnapAndDisableIfCorrect();
+        draggingPiece.position += Vector3.forward;
+        draggingPiece = null;
+        }
+
+        // Set the dragged piece position to the position of the mouse.
+        if (draggingPiece)
+        {
+        Vector3 newPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        // newPosition.z = draggingPiece.position.z;
+        newPosition += offset;
+        draggingPiece.position = newPosition;
+        }
+    }
+
+    private void SnapAndDisableIfCorrect()
+    {
+        // Safety check
+        if (draggingPiece == null || pieces.Count == 0) return;
+
+        int pieceIndex = pieces.IndexOf(draggingPiece);
+
+        // This math works now because 'dimensions' is set in StartGame
+        int col = pieceIndex % dimensions.x;
+        int row = pieceIndex / dimensions.x;
+
+        // This math works now because 'width' and 'height' are set in StartGame
+        // Note: We use the same grid logic as the Python generator (roughly centered on 0,0)
+        float targetX = (-(dimensions.x - 1) * width) / 2 + (col * width);
+        float puzzleTopBorder = (dimensions.y * height) / 2;
+        float firstRowCenter = puzzleTopBorder - (height / 2);
+        float targetY = firstRowCenter - (row * height);
+        Vector2 targetPosition = new Vector2(targetX, targetY);
+
+        // Check distance
+        if (Vector2.Distance(draggingPiece.localPosition, targetPosition) < (width / 2))
+        {
+            // Snap
+            draggingPiece.localPosition = targetPosition;
+
+            // --- FIX 3: Use generic Collider2D (Works for Box OR Polygon) ---
+            Collider2D col2D = draggingPiece.GetComponent<Collider2D>();
+            if(col2D != null) col2D.enabled = false;
+            // ---------------------------------------------------------------
+
+            piecesCorrect++;
+            if (piecesCorrect == pieces.Count)
+            {
+                playAgainButton.SetActive(true);
+                emoji.SetActive(true);
+            }
+        }
+    }
+    public void RestartGame()
+    {
+        Debug.Log("RestartGame function running.");
+        // Destroy all the puzzle pieces.
+        foreach (Transform piece in pieces)
+        {
+        Destroy(piece.gameObject);
+        }
+        pieces.Clear();
+        // Hide the outline
+        gameHolder.GetComponent<LineRenderer>().enabled = false;
+        // Show the level select UI.
+        playAgainButton.SetActive(false);
+        emoji.SetActive(false);
+        sendButton.gameObject.SetActive(true);
+        messageInput.gameObject.SetActive(true);
+    }
+    public void OnClickReturn()
+    {
+        
+        // foreach (Transform piece in pieces)
+        // {
+        //     Destroy(piece.gameObject);
+        // }
+        // pieces.Clear();
+        // // Hide the outline
+        // gameHolder.GetComponent<LineRenderer>().enabled = false;
+        // // Show the level select UI.
+        // playAgainButton.SetActive(false);
+        // emoji.SetActive(false);
+        // sendButton.gameObject.SetActive(true);
+        // messageInput.gameObject.SetActive(true);
+
+        // Debug.Log($"onclick when panel wasn't showing after change in levels: {inlevels}");
+        // screenManager.ShowPanel(ModePanelIndex);
     }
 }

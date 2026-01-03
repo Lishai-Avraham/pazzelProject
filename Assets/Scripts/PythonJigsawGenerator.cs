@@ -1,48 +1,44 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
-using Newtonsoft.Json; 
+using System.Collections;
+using System.Collections.Generic;
+using System;
+
+[System.Serializable]
+public class PieceData
+{
+    public string image;
+    public int row;
+    public int col;
+    public float scale_x;
+    public float scale_y;
+}
+
+[System.Serializable]
+public class PieceListWrapper
+{
+    public List<PieceData> pieces;
+}
 
 public class PythonJigsawGenerator : MonoBehaviour
 {
-    private string serverUrl = "http://127.0.0.1:5000/cut_puzzle"; 
-
-    // --- אין יותר PieceScaleFactor ידני! הכל אוטומטי ---
+    [Header("Server Settings")]
+    [SerializeField] private string serverUrl = "http://127.0.0.1:5000/cut_puzzle";
 
     public float FinalPieceWidth { get; private set; }
     public float FinalPieceHeight { get; private set; }
 
-    [System.Serializable]
-    public class PieceData
+    public void RequestPieces(Texture2D originalImage, int rows, int cols, Transform parent, GameObject prefab, Action<List<Transform>> onComplete)
     {
-        public int row;
-        public int col;
-        public string image_data; 
-        public int width;
-        public int height;
-        // נתונים חדשים מהשרת
-        public float scale_x; 
-        public float scale_y;
+        StartCoroutine(UploadAndGenerate(originalImage, rows, cols, parent, prefab, onComplete));
     }
 
-    [System.Serializable]
-    public class ServerResponse
+    IEnumerator UploadAndGenerate(Texture2D texture, int rows, int cols, Transform parent, GameObject prefab, Action<List<Transform>> onComplete)
     {
-        public string status;
-        public List<PieceData> pieces;
-    }
+        byte[] imageBytes = texture.EncodeToJPG();
 
-    public void RequestPieces(Texture2D sourceTexture, int rows, int cols, Transform gameHolder, GameObject piecePrefab, System.Action<List<Transform>> onComplete)
-    {
-        StartCoroutine(UploadAndGenerate(sourceTexture, rows, cols, gameHolder, piecePrefab, onComplete));
-    }
-
-    IEnumerator UploadAndGenerate(Texture2D texture, int rows, int cols, Transform gameHolder, GameObject piecePrefab, System.Action<List<Transform>> onComplete)
-    {
-        byte[] imageBytes = texture.EncodeToPNG();
         WWWForm form = new WWWForm();
-        form.AddBinaryData("image", imageBytes, "puzzle.png", "image/png");
+        form.AddBinaryData("image", imageBytes, "puzzle.jpg", "image/jpeg");
         form.AddField("rows", rows);
         form.AddField("cols", cols);
 
@@ -52,90 +48,72 @@ public class PythonJigsawGenerator : MonoBehaviour
 
             if (www.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError("Python Error: " + www.error);
+                Debug.LogError("Python Error: " + www.error + "\nResponse: " + www.downloadHandler.text);
             }
             else
             {
-                ProcessResponse(www.downloadHandler.text, texture, gameHolder, piecePrefab, rows, cols, onComplete);
+                string jsonResponse = www.downloadHandler.text;
+                PieceListWrapper wrapper = JsonUtility.FromJson<PieceListWrapper>(jsonResponse);
+                
+                if (wrapper == null || wrapper.pieces == null)
+                {
+                    Debug.LogError("JSON Error. Response: " + jsonResponse);
+                    yield break;
+                }
+
+                List<Transform> createdPieces = new List<Transform>();
+
+                float orthoHeight = Camera.main.orthographicSize * 2f;
+                float targetTotalHeight = orthoHeight * 0.7f;
+                
+                float baseHeight = targetTotalHeight / rows;
+                float aspect = (float)texture.width / texture.height;
+                float baseWidth = baseHeight * aspect;
+
+                FinalPieceWidth = baseWidth;
+                FinalPieceHeight = baseHeight;
+
+                foreach (PieceData data in wrapper.pieces)
+                {
+                    GameObject pieceObj = Instantiate(prefab, parent);
+                    pieceObj.name = $"Piece_{data.row}_{data.col}";
+
+                    // --- תיקון נראות 1: איפוס מיקום Z ---
+                    pieceObj.transform.localPosition = new Vector3(pieceObj.transform.localPosition.x, pieceObj.transform.localPosition.y, 0f);
+
+                    byte[] decodedBytes = Convert.FromBase64String(data.image);
+                    Texture2D pieceTex = new Texture2D(2, 2);
+                    pieceTex.LoadImage(decodedBytes);
+
+                    Sprite sprite = Sprite.Create(pieceTex, new Rect(0, 0, pieceTex.width, pieceTex.height), new Vector2(0.5f, 0.5f));
+                    SpriteRenderer sr = pieceObj.GetComponent<SpriteRenderer>();
+                    sr.sprite = sprite;
+
+                    // --- תיקון נראות 2: העלאת סדר השכבה ---
+                    // זה מבטיח שהחתיכה תצויר מעל הרקע
+                    sr.sortingOrder = 10; 
+
+                    float scaleX = baseWidth * data.scale_x;
+                    float scaleY = baseHeight * data.scale_y;
+
+                    float ppu = 100f; 
+                    float originalWorldWidth = pieceTex.width / ppu;
+                    float originalWorldHeight = pieceTex.height / ppu;
+
+                    pieceObj.transform.localScale = new Vector3(
+                        scaleX / originalWorldWidth,
+                        scaleY / originalWorldHeight,
+                        1f
+                    );
+
+                    if (pieceObj.GetComponent<BoxCollider2D>() == null)
+                         pieceObj.AddComponent<BoxCollider2D>();
+
+                    createdPieces.Add(pieceObj.transform);
+                }
+
+                onComplete?.Invoke(createdPieces);
             }
         }
-    }
-
-    void ProcessResponse(string json, Texture2D originalTexture, Transform gameHolder, GameObject piecePrefab, int totalRows, int totalCols, System.Action<List<Transform>> onComplete)
-    {
-        if (gameHolder == null) return;
-
-        ServerResponse response = JsonConvert.DeserializeObject<ServerResponse>(json);
-        List<Transform> newPieces = new List<Transform>(); 
-
-        // חישוב גודל גריד (80% מהמסך)
-        float screenHeight = Camera.main.orthographicSize * 2f;
-        float screenWidth = screenHeight * Camera.main.aspect;
-
-        float maxAllowedHeight = screenHeight * 0.8f;
-        float maxAllowedWidth = screenWidth * 0.8f;
-
-        float imageAspect = (float)originalTexture.width / originalTexture.height;
-        float screenAspect = maxAllowedWidth / maxAllowedHeight;
-
-        float targetTotalWidth, targetTotalHeight;
-
-        if (imageAspect > screenAspect)
-        {
-            targetTotalWidth = maxAllowedWidth;
-            targetTotalHeight = targetTotalWidth / imageAspect;
-        }
-        else
-        {
-            targetTotalHeight = maxAllowedHeight;
-            targetTotalWidth = targetTotalHeight * imageAspect;
-        }
-
-        FinalPieceHeight = targetTotalHeight / totalRows;
-        FinalPieceWidth = targetTotalWidth / totalCols;
-
-        foreach (PieceData data in response.pieces)
-        {
-            byte[] imageBytes = System.Convert.FromBase64String(data.image_data);
-            Texture2D pieceTex = new Texture2D(data.width, data.height);
-            pieceTex.LoadImage(imageBytes);
-
-            // --- תיקון PPU אוטומטי ---
-            // משתמשים בנתון שהגיע מהפייתון (scale_x) כדי לדעת בדיוק כמה לנפח
-            // אם פייתון אומר 1.7, נשתמש ב-1.7. אם 2.5, אז 2.5.
-            float ppu = data.width / (FinalPieceWidth * data.scale_x);
-            
-            Sprite pieceSprite = Sprite.Create(pieceTex, new Rect(0, 0, pieceTex.width, pieceTex.height), new Vector2(0.5f, 0.5f), ppu);
-
-            GameObject pieceObj = Instantiate(piecePrefab, gameHolder);
-            pieceObj.name = $"Piece_{data.row}_{data.col}";
-
-            if(pieceObj.GetComponent<MeshFilter>()) Destroy(pieceObj.GetComponent<MeshFilter>());
-            if(pieceObj.GetComponent<MeshRenderer>()) Destroy(pieceObj.GetComponent<MeshRenderer>());
-            
-            SpriteRenderer sr = pieceObj.GetComponent<SpriteRenderer>();
-            if (sr == null) sr = pieceObj.AddComponent<SpriteRenderer>();
-            
-            sr.sprite = pieceSprite;
-            sr.sortingOrder = 10; 
-            pieceObj.transform.localScale = Vector3.one; 
-
-            if(pieceObj.GetComponent<PolygonCollider2D>()) Destroy(pieceObj.GetComponent<PolygonCollider2D>());
-            pieceObj.AddComponent<PolygonCollider2D>();
-            pieceObj.tag = "PuzzlePiece";
-
-            float startX = -((totalCols-1) * FinalPieceWidth) / 2;
-            float startY = ((totalRows-1) * FinalPieceHeight) / 2; 
-
-            pieceObj.transform.localPosition = new Vector3(
-                startX + (data.col * FinalPieceWidth), 
-                startY - (data.row * FinalPieceHeight), 
-                -5.0f 
-            );
-            
-            newPieces.Add(pieceObj.transform);
-        }
-
-        if (onComplete != null) onComplete(newPieces);
     }
 }
