@@ -32,12 +32,18 @@ public class PromptsInput : MonoBehaviour
     private int piecesCorrect;
 
     int ModePanelIndex = 1;
-    int difficulty = 4; // ברירת מחדל
+    int difficulty = 4; 
+    bool ingame = false;
+    private bool isGameActive = false;
 
     void Start()
     {
         sendButton.onClick.AddListener(OnSendClicked);
-        returnButton.onClick.AddListener(OnClickReturn);
+        if (Settings.Instance != null)
+        {
+            difficulty = Settings.Instance.pieces;
+        }
+        bool musicOn = Settings.Instance.isMusicOn;
     }
 
     public void OnSendClicked()
@@ -49,68 +55,20 @@ public class PromptsInput : MonoBehaviour
             return;
         }
 
-        // ביטול הכפתור כדי שלא ילחצו פעמיים
+        
         sendButton.interactable = false;
         sendButton.gameObject.SetActive(false);
         messageInput.gameObject.SetActive(false);
         
-        // התחלת התהליך (קורוטינה עדיפה ביוניטי להורדת תמונות)
         StartCoroutine(GenerateImagePollinations(prompt));
     }
 
-    // פונקציה המשתמשת ב-API החינמי של Pollinations
-    // IEnumerator GenerateImagePollinations(string prompt)
-    // {
-    //     Debug.Log($"Generating image for: {prompt}");
-
-    //     // בניית הכתובת. אנחנו מבקשים תמונה ריבועית (1024x1024)
-    //     // UnityWebRequest.EscapeURL הופך רווחים ל-%20 וכו'
-    //     string url = "https://image.pollinations.ai/prompt/" + UnityWebRequest.EscapeURL(prompt) + "?width=1024&height=1024&nologo=true&model=flux";
-
-    //     // שימוש ב-UnityWebRequest להורדת התמונה (יותר פשוט מ-HttpClient)
-    //     using (UnityWebRequest uwr = UnityWebRequestTexture.GetTexture(url))
-    //     {
-    //         yield return uwr.SendWebRequest();
-
-    //         if (uwr.result != UnityWebRequest.Result.Success)
-    //         {
-    //             Debug.LogError("Error downloading image: " + uwr.error);
-    //         }
-    //         else
-    //         {
-    //             Debug.Log("Image downloaded successfully!");
-
-    //             // המרת המידע לטקסטורה
-    //             Texture2D tex = DownloadHandlerTexture.GetContent(uwr);
-                
-    //             if (tex != null)
-    //             {
-    //                 tex.name = "AI_Generated_" + prompt;
-                    
-    //                 // שליחת התמונה למשחק
-    //                 StartGame(tex);
-                    
-    //                 // ניקוי השדה
-    //                 messageInput.text = "";
-    //             }
-    //         }
-    //     }
-        
-    //     // החזרת הכפתור לפעולה
-    //     sendButton.interactable = true;
-    // }
     IEnumerator GenerateImagePollinations(string prompt)
     {
-        // 1. אנחנו לא נוגעים בטקסט! משאירים אותו נקי כדי לא לשבור את השרת
-        // רק דואגים שרווחים יהפכו לסימנים תקינים
         string safePrompt = UnityWebRequest.EscapeURL(prompt);
 
-        // 2. מגרילים מספר בשביל הגיוון
         int randomSeed = Random.Range(1, 999);
 
-        // 3. בונים את הכתובת עם הפרמטרים הנכונים:
-        // model=turbo -> מכריח שימוש במודל שעובד (ולא flux שקורס בבקשות חדשות)
-        // seed=... -> נותן את הגיוון בלי לשנות את הטקסט
         string url = "https://image.pollinations.ai/prompt/" + safePrompt + 
                      "?model=turbo" + 
                      "&seed=" + randomSeed + 
@@ -145,6 +103,15 @@ public class PromptsInput : MonoBehaviour
     public void StartGame(Texture2D jigsawTexture)
     {
         Debug.Log("StartGame Running...");
+        if (Settings.Instance != null)
+        {
+            difficulty = Settings.Instance.pieces;
+            Debug.Log($"Difficulty loaded from Settings: {difficulty}");
+        }
+        isGameActive = true;
+        gameHolder.position = Vector3.zero;
+        gameHolder.rotation = Quaternion.identity;
+        gameHolder.localScale = Vector3.one;
         
         pieces = new List<Transform>(); 
         piecesCorrect = 0;
@@ -156,8 +123,17 @@ public class PromptsInput : MonoBehaviour
         int cols = rows;
         
         dimensions = new Vector2Int(cols, rows);
-
+        ingame = true;
         pythonGenerator.RequestPieces(jigsawTexture, rows, cols, gameHolder, piecePrefab, (generatedPieces) => {
+            if (isGameActive == false) 
+            {
+                // We are back in the menu! Destroy these new pieces immediately.
+                foreach(var p in generatedPieces) 
+                {
+                    Destroy(p.gameObject);
+                }
+                return; // Stop the function here
+            }
             this.pieces = generatedPieces;
             
             width = pythonGenerator.FinalPieceWidth;
@@ -169,6 +145,7 @@ public class PromptsInput : MonoBehaviour
             UpdateBorder(totalPuzzleWidth, totalPuzzleHeight);  
             Scatter();       
         });
+        
     }
 
 
@@ -324,24 +301,32 @@ public class PromptsInput : MonoBehaviour
         emoji.SetActive(false);
         sendButton.gameObject.SetActive(true);
         messageInput.gameObject.SetActive(true);
+        ingame = false;
     }
     public void OnClickReturn()
     {
-        
-        // foreach (Transform piece in pieces)
-        // {
-        //     Destroy(piece.gameObject);
-        // }
-        // pieces.Clear();
-        // // Hide the outline
-        // gameHolder.GetComponent<LineRenderer>().enabled = false;
-        // // Show the level select UI.
-        // playAgainButton.SetActive(false);
-        // emoji.SetActive(false);
-        // sendButton.gameObject.SetActive(true);
-        // messageInput.gameObject.SetActive(true);
-
-        // Debug.Log($"onclick when panel wasn't showing after change in levels: {inlevels}");
-        // screenManager.ShowPanel(ModePanelIndex);
+        isGameActive = false;
+        if (ingame)
+        {
+            foreach (Transform piece in pieces)
+            {
+                Destroy(piece.gameObject);
+            }
+            pieces.Clear();
+            // Hide the outline
+            gameHolder.GetComponent<LineRenderer>().enabled = false;
+            // Show the level select UI.
+            playAgainButton.SetActive(false);
+            emoji.SetActive(false);
+            ingame = false;
+            sendButton.gameObject.SetActive(true);
+            messageInput.gameObject.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning("see levelSelectPanel as true.");
+            ingame = false;
+            screenManager.ShowScreen(ModePanelIndex);
+        } 
     }
 }

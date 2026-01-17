@@ -11,13 +11,15 @@ public class ImageUploader : MonoBehaviour
     [SerializeField] private int difficulty = 2;
     [SerializeField] private Transform gameHolder;
     // [SerializeField] private Transform piecePrefab;
-    [SerializeField] private Transform piecePrefab;
+    [SerializeField] private GameObject piecePrefab; 
     [SerializeField] private Button uploadButton;
     [SerializeField] private Button returnButton;
     [SerializeField] private ScreenManager screenManager;
     [SerializeField] private GameObject playAgainButton;
     [SerializeField] private GameObject emoji;
+    [SerializeField] private PythonJigsawGenerator pythonGenerator;
 
+    private Texture2D selectedTexture;
     private List<Transform> pieces;
     private Vector2Int dimensions;
     private float width;
@@ -27,6 +29,7 @@ public class ImageUploader : MonoBehaviour
     private int piecesCorrect;
     int ModePanelIndex = 1;
     private bool inlevels = true;
+    private bool isGameActive = false;
 
     
     public void PickImage()
@@ -37,7 +40,7 @@ public class ImageUploader : MonoBehaviour
             if (path != null)
             {
                 // Load the selected image
-                Texture2D texture = NativeGallery.LoadImageAtPath(path, 1024);
+                Texture2D texture = NativeGallery.LoadImageAtPath(path, 1024, false);                if (texture == null)
                 if (texture == null)
                 {
                     Debug.LogError("Couldn't load texture from " + path);
@@ -53,155 +56,117 @@ public class ImageUploader : MonoBehaviour
             }
         }, "Select an image", "image/*");
     }
+    
     public void StartGame(Texture2D jigsawTexture)
     {
         Debug.Log("StartGame function running.");
-        Debug.Log($"DIFFICULTY = {difficulty}");
+        if (Settings.Instance != null)
+        {
+            difficulty = Settings.Instance.pieces;
+            Debug.Log($"Difficulty loaded from Settings: {difficulty}");
+        }
+        isGameActive = true;
         // Hide the UI
         uploadButton.gameObject.SetActive(false);
         inlevels = false;
+        
+        // Reset the holder position so pieces don't spawn off-screen
+        gameHolder.position = Vector3.zero;
+        gameHolder.rotation = Quaternion.identity;
+        gameHolder.localScale = Vector3.one;
 
-        // We store a list of the transform for each jigsaw piece so we can track them later.
         pieces = new List<Transform>();
-
-        // Calculate the size of each jigsaw piece, based on a difficulty setting.
-        dimensions = GetDimensions(jigsawTexture, difficulty);
-
-        // Create the pieces of the correct size with the correct texture.
-        CreateJigsawPieces(jigsawTexture);
-
-        // Place the pieces randomly into the visible area.
-        Scatter();
-
-        // Update the border to fit the chosen puzzle.
-        UpdateBorder();
-
-        // As we're starting the puzzle there will be no correct pieces.
         piecesCorrect = 0;
-    }
-    // public void OnClickReturn()
-    // {
-    //     screenManager.ShowScreen(ModePanelIndex);
-    // }
+        selectedTexture = jigsawTexture;
 
-    public Vector2Int GetDimensions(Texture2D jigsawTexture, int difficulty)
-    {
-        Debug.Log("GetDimensions function running.");
-        Vector2Int dimensions = Vector2Int.zero;
-        // Difficulty is the number of pieces on the smallest texture dimension.
-        // This helps ensure the pieces are as square as possible.
-        if (jigsawTexture.width < jigsawTexture.height)
-        {
-            dimensions.x = difficulty;
-            dimensions.y = (difficulty * jigsawTexture.height) / jigsawTexture.width;
-        }
-        else
-        {
-            dimensions.x = (difficulty * jigsawTexture.width) / jigsawTexture.height;
-            dimensions.y = difficulty;
-        }
-        return dimensions;
-    }
+        foreach(Transform child in gameHolder) Destroy(child.gameObject);
 
-    // Create all the jigsaw pieces
-    public void CreateJigsawPieces(Texture2D jigsawTexture)
-    {
-        Debug.Log("CreateJigsawPieces function running.");
-        // Calculate piece sizes based on the dimensions.
-        height = 1f / dimensions.y;
-        float aspect = (float)jigsawTexture.width / jigsawTexture.height;
-        width = aspect / dimensions.x;
+        int calculated = (int)Mathf.Sqrt(difficulty);
+        int rows = Mathf.Max(2, calculated); 
+        int cols = rows;
+        dimensions = new Vector2Int(cols, rows);
 
-        for (int row = 0; row < dimensions.y; row++)
-        {
-            for (int col = 0; col < dimensions.x; col++)
+        pythonGenerator.RequestPieces(jigsawTexture, rows, cols, gameHolder, piecePrefab, (generatedPieces) => {
+            
+            // If the user went back to the menu (inlevels is true) while we were waiting,
+            // destroy the new pieces immediately and stop.
+            if (isGameActive == false) 
             {
-                // Create the piece in the right location of the right size.
-                Transform piece = Instantiate(piecePrefab, gameHolder);
-                piece.localPosition = new Vector3(
-                (-width * dimensions.x / 2) + (width * col) + (width / 2),
-                (-height * dimensions.y / 2) + (height * row) + (height / 2),
-                -1);
-                piece.localScale = new Vector3(width, height, 1f);
-
-                // We don't have to name them, but always useful for debugging.
-                piece.name = $"Piece {(row * dimensions.x) + col}";
-                pieces.Add(piece);
-                if (piece.GetComponent<BoxCollider2D>() == null)
-                {
-                    piece.gameObject.AddComponent<BoxCollider2D>();
-                }
-
-                // Assign the correct part of the texture for this jigsaw piece
-                // We need our width and height both to be normalised between 0 and 1 for the UV.
-                float width1 = 1f / dimensions.x;
-                float height1 = 1f / dimensions.y;
-                // UV coord order is anti-clockwise: (0, 0), (1, 0), (0, 1), (1, 1)
-                Vector2[] uv = new Vector2[4];
-                uv[0] = new Vector2(width1 * col, height1 * row);
-                uv[1] = new Vector2(width1 * (col + 1), height1 * row);
-                uv[2] = new Vector2(width1 * col, height1 * (row + 1));
-                uv[3] = new Vector2(width1 * (col + 1), height1 * (row + 1));
-                // Assign our new UVs to the mesh.
-                Mesh mesh = piece.GetComponent<MeshFilter>().mesh;
-                mesh.uv = uv;
-                // Update the texture on the piece
-                piece.GetComponent<MeshRenderer>().material.SetTexture("_MainTex", jigsawTexture);
+                foreach(var p in generatedPieces) Destroy(p.gameObject);
+                return; 
             }
-        }
+            this.pieces = generatedPieces;
+            
+            width = pythonGenerator.FinalPieceWidth;
+            height = pythonGenerator.FinalPieceHeight;
+            
+            float totalPuzzleWidth = width * cols;
+            float totalPuzzleHeight = height * rows;
+
+            UpdateBorder(totalPuzzleWidth, totalPuzzleHeight);  
+            
+            Scatter();       
+        });
     }
 
     // Place the pieces randomly in the visible area.
-    public void Scatter()
+     void Scatter()
     {
-        Debug.Log("Scatter function running.");
-        // Calculate the visible orthographic size of the screen.
-        float orthoHeight = Camera.main.orthographicSize;
-        float screenAspect = (float)Screen.width / Screen.height;
-        float orthoWidth = (screenAspect * orthoHeight);
+        // חישוב גבולות המסך כדי שהחלקים לא יצאו החוצה
+        float screenHeight = Camera.main.orthographicSize * 2f;
+        float screenWidth = screenHeight * Camera.main.aspect;
 
-        // Ensure pieces are away from the edges.
-        float pieceWidth = width * gameHolder.localScale.x;
-        float pieceHeight = height * gameHolder.localScale.y;
+        float margin = width; // משאירים מקום של חתיכה אחת מהקצה
+        float safeX = (screenWidth / 2) - margin;
+        float safeY = (screenHeight / 2) - margin;
 
-        orthoHeight -= pieceHeight / 2;
-        orthoWidth -= pieceWidth / 2;
-
-        // Place each piece randomly in the visible area.
         foreach (Transform piece in pieces)
         {
-        float x = UnityEngine.Random.Range(-orthoWidth, orthoWidth);
-        float y = UnityEngine.Random.Range(-orthoHeight, orthoHeight);
-        piece.position = new Vector3(x, y, -1);
+            float randomX = UnityEngine.Random.Range(-safeX, safeX);
+            float randomY = UnityEngine.Random.Range(-safeY, safeY);
+
+            // Z=-5 מבטיח שהחלקים יהיו מעל הרקע (שהוא בדרך כלל ב-0)
+            piece.localPosition = new Vector3(randomX, randomY, -5.0f);
+            
+            Collider2D col = piece.GetComponent<Collider2D>();
+            if(col != null) col.enabled = true;
         }
     }
-
     // Update the border to fit the chosen puzzle.
-    public void UpdateBorder()
+      public void UpdateBorder(float totalWidth, float totalHeight)
     {
-        Debug.Log("UpdateBorder function running.");
         LineRenderer lineRenderer = gameHolder.GetComponent<LineRenderer>();
+        if (lineRenderer == null) {
+            lineRenderer = gameHolder.gameObject.AddComponent<LineRenderer>();
+      }
 
-        // Calculate half sizes to simplify the code.
-        float halfWidth = (width * dimensions.x) / 2f;
-        float halfHeight = (height * dimensions.y) / 2f;
+      // הגדרת חומר בסיסי כדי שהקו ייראה
+      if (lineRenderer.material == null) {
+          lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+          lineRenderer.startColor = Color.white;
+          lineRenderer.endColor = Color.white;
+      }
 
-        // We want the border to be behind the pieces.
-        float borderZ = 0f;
+      float halfWidth = totalWidth / 2f;
+      float halfHeight = totalHeight / 2f;
+      float borderZ = -1.0f; 
 
-        // Set border vertices, starting top left, going clockwise.
-        lineRenderer.SetPosition(0, new Vector3(-halfWidth, halfHeight, borderZ));
-        lineRenderer.SetPosition(1, new Vector3(halfWidth, halfHeight, borderZ));
-        lineRenderer.SetPosition(2, new Vector3(halfWidth, -halfHeight, borderZ));
-        lineRenderer.SetPosition(3, new Vector3(-halfWidth, -halfHeight, borderZ));
+      lineRenderer.positionCount = 4;
+      lineRenderer.loop = true;
+      lineRenderer.useWorldSpace = false;
+      
+      // --- התיקון: וידוא שהקו מצויר מעל הכל ---
+      lineRenderer.sortingOrder = 20; // מספר גבוה כדי להיות מעל הרקע והחלקים
 
-        // Set the thickness of the border line.
-        lineRenderer.startWidth = 0.1f;
-        lineRenderer.endWidth = 0.1f;
+      lineRenderer.SetPosition(0, new Vector3(-halfWidth, halfHeight, borderZ));
+      lineRenderer.SetPosition(1, new Vector3(halfWidth, halfHeight, borderZ));
+      lineRenderer.SetPosition(2, new Vector3(halfWidth, -halfHeight, borderZ));
+      lineRenderer.SetPosition(3, new Vector3(-halfWidth, -halfHeight, borderZ));
 
-        // Show the border line.
-        lineRenderer.enabled = true;
-    }
+      lineRenderer.startWidth = 0.15f;
+      lineRenderer.endWidth = 0.15f;
+      lineRenderer.enabled = true;
+  }
 
     // Update is called once per frame
     void Update()
@@ -239,35 +204,37 @@ public class ImageUploader : MonoBehaviour
 
     private void SnapAndDisableIfCorrect()
     {
-        Debug.Log("SnapAndDisableIfCorrect function running.");
-        // We need to know the index of the piece to determine it's correct position.
-        int pieceIndex = pieces.IndexOf(draggingPiece);
+      if (draggingPiece == null || pieces.Count == 0) return;
 
-        // The coordinates of the piece in the puzzle.
-        int col = pieceIndex % dimensions.x;
-        int row = pieceIndex / dimensions.x;
+      int pieceIndex = pieces.IndexOf(draggingPiece);
+      int col = pieceIndex % dimensions.x;
+      int row = pieceIndex / dimensions.x;
 
-        // The target position in the non-scaled coordinates.
-        Vector2 targetPosition = new((-width * dimensions.x / 2) + (width * col) + (width / 2),
-                                    (-height * dimensions.y / 2) + (height * row) + (height / 2));
+      // חישוב המיקום הנכון - מבוסס על גודל הגריד ומרכוז סביב ה-0,0
+      // הנוסחה הזו מניחה שה-GameHolder נמצא ב-0,0,0
+      float startX = -((dimensions.x * width) / 2) + (width / 2);
+      float startY = ((dimensions.y * height) / 2) - (height / 2);
 
-        // Check if we're in the correct location.
-        if (Vector2.Distance(draggingPiece.localPosition, targetPosition) < (width / 2))
-        {
-        // Snap to our destination.
-        draggingPiece.localPosition = targetPosition;
+      float targetX = startX + (col * width);
+      float targetY = startY - (row * height);
 
-        // Disable the collider so we can't click on the object anymore.
-        draggingPiece.GetComponent<BoxCollider2D>().enabled = false;
+      Vector2 targetPosition = new Vector2(targetX, targetY);
 
-        // Increase the number of correct pieces, and check for puzzle completion.
-        piecesCorrect++;
-        if (piecesCorrect == pieces.Count)
-        {
-            playAgainButton.SetActive(true);
-            emoji.SetActive(true);
-        }
-        }
+      if (Vector2.Distance(draggingPiece.localPosition, targetPosition) < (width / 2))
+      {
+          // --- תיקון: Z=0 כשהחלק במקום, כדי שיהיה מתחת לחלקים שעדיין גוררים ---
+          draggingPiece.localPosition = new Vector3(targetX, targetY, 0f); 
+          
+          Collider2D col2D = draggingPiece.GetComponent<Collider2D>();
+          if(col2D != null) col2D.enabled = false;
+
+          piecesCorrect++;
+          if (piecesCorrect == pieces.Count)
+          {
+              playAgainButton.SetActive(true);
+              emoji.SetActive(true);
+          }
+      }
     }
 
     public void RestartGame()
@@ -290,6 +257,7 @@ public class ImageUploader : MonoBehaviour
     public void OnClickReturn()
     {
         Debug.Log("OnClickReturn function running.");
+        isGameActive = false;
         if (inlevels == true)
         {
         Debug.LogWarning("see uploadButton as true.");

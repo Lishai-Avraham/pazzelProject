@@ -46,12 +46,12 @@ public class Settings : MonoBehaviour
     {
         return diff switch
         {
-            "Easy" => 2,
-            "Medium" => 4,
-            "Hard" => 6,
-            "Expert" => 8,
-            "Master" => 10,
-            "Extreme" => 20,
+            "Easy" => 4,
+            "Medium" => 9,
+            "Hard" => 16,
+            "Expert" => 25,
+            "Master" => 36,
+            "Extreme" => 49,
             _ => 2
         };
     }
