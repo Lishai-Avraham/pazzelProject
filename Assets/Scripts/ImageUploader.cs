@@ -31,7 +31,13 @@ public class ImageUploader : MonoBehaviour
     private bool inlevels = true;
     private bool isGameActive = false;
 
-    
+    private void Start()
+    {
+        if (Settings.Instance != null)
+        {
+            difficulty = Settings.Instance.pieces;
+        }
+    }
     public void PickImage()
     {
         // Opens Android's gallery
@@ -56,7 +62,7 @@ public class ImageUploader : MonoBehaviour
             }
         }, "Select an image", "image/*");
     }
-    
+
     public void StartGame(Texture2D jigsawTexture)
     {
         Debug.Log("StartGame function running.");
