@@ -11,6 +11,7 @@ public class ModePanel : MonoBehaviour
     [SerializeField] private GameObject AIButton;
     [SerializeField] private GameObject RegularButton;
     [SerializeField] private GameObject settingButton;
+    [SerializeField] private GameObject leaderboardButton;
     [SerializeField] private ScreenManager screenManager;
     [SerializeField] private GameManager gameManager;
 
@@ -18,12 +19,14 @@ public class ModePanel : MonoBehaviour
     int aiIndex = 3;
     int regularIndex = 4;
     int settingsIndex=5;
+    int leaderboardIndex=6;
     void Start()
     {
         MyPhotosButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(OnClickMyPhotos);
         AIButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(OnClickAI);
         RegularButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(OnClickRegular);
         settingButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(OnClicksettings);
+        leaderboardButton.GetComponent<UnityEngine.UI.Button>().onClick.AddListener(OnClickboard);
     }
     public void OnClickMyPhotos()
     {
@@ -42,5 +45,9 @@ public class ModePanel : MonoBehaviour
     public void OnClicksettings()
     {
         screenManager.ShowScreen(settingsIndex);
+    }
+    public void OnClickboard()
+    {
+        screenManager.ShowScreen(leaderboardIndex);
     }
 }

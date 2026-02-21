@@ -71,6 +71,7 @@ public class LoginPanel : MonoBehaviour
     try
     {
       await AuthenticationService.Instance.SignUpWithUsernamePasswordAsync(username, password);
+      await AuthenticationService.Instance.UpdatePlayerNameAsync(username);
       Debug.Log("SignUp is successful.");
       return true;
     }
@@ -99,6 +100,7 @@ public class LoginPanel : MonoBehaviour
     try
     {
       await AuthenticationService.Instance.SignInWithUsernamePasswordAsync(username, password);
+      await AuthenticationService.Instance.UpdatePlayerNameAsync(username);
       Debug.Log("SignIn is successful.");
       return true;
     }

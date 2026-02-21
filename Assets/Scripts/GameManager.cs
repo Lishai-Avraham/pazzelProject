@@ -169,6 +169,11 @@ public class GameManager : MonoBehaviour
   [SerializeField] private PuzzleAPIManager apiManager;
   [SerializeField] private PythonJigsawGenerator pythonGenerator;
 
+  [Header("Timer UI")]
+  [SerializeField] private TextMeshProUGUI timerText;
+  private float currentElapsedTime;
+  private bool isTimerRunning = false;
+
   private Texture2D selectedTexture;
   private List<Transform> pieces;
   private Vector2Int dimensions;
@@ -180,10 +185,14 @@ public class GameManager : MonoBehaviour
   int ModePanelIndex = 1;
   private bool inlevels = true;
   private bool isGameActive = false;
+  private float startTime;
+  private double timeTaken;
 
   public void StartGame(Texture2D jigsawTexture)
   {
       Debug.Log("StartGame Running...");
+      if(timerText != null) timerText.text = "00:00";
+      timerText.gameObject.SetActive(false);
       if (Settings.Instance != null)
       {
           difficulty = Settings.Instance.pieces;
@@ -227,8 +236,12 @@ public class GameManager : MonoBehaviour
 
           UpdateBorder(totalPuzzleWidth, totalPuzzleHeight);  
           
-          Scatter();       
+          Scatter(); 
+          isTimerRunning = true; 
+          if(timerText != null) timerText.gameObject.SetActive(true);
+          startTime = Time.time;      
       });
+    
   }
 
   public void ShowLevelSelect()
@@ -243,6 +256,8 @@ public class GameManager : MonoBehaviour
 
   async void Start()
   {
+    if(timerText != null) timerText.text = "00:00";
+    timerText.gameObject.SetActive(false);
     Debug.Log("start function running.");
     if (Settings.Instance != null)
     {
@@ -373,6 +388,11 @@ public class GameManager : MonoBehaviour
   // Update is called once per frame
   void Update()
   {
+    if (isTimerRunning)
+    {
+        currentElapsedTime += Time.deltaTime;
+        UpdateTimerDisplay();
+    }
     // Debug.Log("Update function running.");
     if (Input.GetMouseButtonDown(0))
     {
@@ -404,6 +424,15 @@ public class GameManager : MonoBehaviour
     }
   }
 
+  private void UpdateTimerDisplay()
+  {
+      if (timerText == null) return;
+
+      int minutes = Mathf.FloorToInt(currentElapsedTime / 60);
+      int seconds = Mathf.FloorToInt(currentElapsedTime % 60);
+      timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
+  }
+
   private void SnapAndDisableIfCorrect()
   {
       if (draggingPiece == null || pieces.Count == 0) return;
@@ -433,13 +462,38 @@ public class GameManager : MonoBehaviour
           piecesCorrect++;
           if (piecesCorrect == pieces.Count)
           {
-              playAgainButton.SetActive(true);
-              emoji.SetActive(true);
+            isTimerRunning = false;
+            timeTaken = Time.time - startTime;
+            string difficultyName = "easy";
+            if (Settings.Instance != null && !string.IsNullOrEmpty(Settings.Instance.difficulty))
+            {
+                difficultyName = Settings.Instance.difficulty;
+                difficultyName = difficultyName.ToLower();
+                Debug.Log($"Difficulty from Settings: {difficultyName}");
+            }
+            else
+            {
+                Debug.LogWarning("Settings.Instance is missing! Defaulting difficulty to 'easy'.");
+            }
+
+            // 2. Submit Score Safely
+            if (LeaderboardManager.Instance != null)
+            {
+                LeaderboardManager.Instance.SubmitScore(difficultyName, timeTaken);
+            }
+            else
+            {
+                Debug.LogWarning("LeaderboardManager.Instance is missing! Score could not be submitted.");
+            }
+            playAgainButton.SetActive(true);
+            emoji.SetActive(true);
+            
           }
       }
   }
   public void RestartGame()
   {
+    ResetTimerUI();
     Debug.Log("RestartGame function running.");
     // Destroy all the puzzle pieces.
     foreach (Transform piece in pieces)
@@ -459,6 +513,7 @@ public class GameManager : MonoBehaviour
   }
   public void OnClickReturn()
   {
+    ResetTimerUI();
     Debug.Log("OnClickReturn function running.");
     Debug.Log($"onclick in levels, befor change: {inlevels}");
     isGameActive = false;
@@ -487,5 +542,16 @@ public class GameManager : MonoBehaviour
       Debug.Log($"onclick when panel wasn't showing after change in levels: {inlevels}");
 
     } 
+  }
+
+  private void ResetTimerUI()
+  {
+      isTimerRunning = false;
+      currentElapsedTime = 0f;
+      if(timerText != null) 
+      {
+          timerText.text = "00:00";
+          timerText.gameObject.SetActive(false); // Optional: hide when not in game
+      }
   }
 }

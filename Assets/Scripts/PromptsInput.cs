@@ -21,6 +21,10 @@ public class PromptsInput : MonoBehaviour
     [SerializeField] private GameObject piecePrefab; 
     [SerializeField] private GameObject playAgainButton;
     [SerializeField] private GameObject emoji;
+    [Header("Timer UI")]
+    [SerializeField] private TextMeshProUGUI timerText;
+    private float currentElapsedTime;
+    private bool isTimerRunning = false;
 
 
     private List<Transform> pieces;
@@ -35,10 +39,14 @@ public class PromptsInput : MonoBehaviour
     int difficulty = 4; 
     bool ingame = false;
     private bool isGameActive = false;
+    private float startTime;
+    private double timeTaken;
 
     void Start()
     {
         sendButton.onClick.AddListener(OnSendClicked);
+        if(timerText != null) timerText.text = "00:00";
+        timerText.gameObject.SetActive(false);
         if (Settings.Instance != null)
         {
             difficulty = Settings.Instance.pieces;
@@ -46,6 +54,22 @@ public class PromptsInput : MonoBehaviour
         bool musicOn = Settings.Instance.isMusicOn;
     }
 
+    // public void OnSendClicked()
+    // {
+    //     string prompt = messageInput.text;
+    //     if (string.IsNullOrEmpty(prompt))
+    //     {
+    //         Debug.Log("Empty input");
+    //         return;
+    //     }
+
+        
+    //     sendButton.interactable = false;
+    //     sendButton.gameObject.SetActive(false);
+    //     messageInput.gameObject.SetActive(false);
+        
+    //     StartCoroutine(GenerateImagePollinations(prompt));
+    // }
     public void OnSendClicked()
     {
         string prompt = messageInput.text;
@@ -55,49 +79,145 @@ public class PromptsInput : MonoBehaviour
             return;
         }
 
-        
         sendButton.interactable = false;
         sendButton.gameObject.SetActive(false);
         messageInput.gameObject.SetActive(false);
+        timerText.gameObject.SetActive(true);
         
-        StartCoroutine(GenerateImagePollinations(prompt));
+        // CHANGE THIS LINE to match your new function name:
+        StartCoroutine(GenerateImageFromLocalSD(prompt)); 
     }
+    // IEnumerator GenerateImagePollinations(string prompt)
+    // {
+    //     string safePrompt = UnityWebRequest.EscapeURL(prompt);
 
-    IEnumerator GenerateImagePollinations(string prompt)
+    //     int randomSeed = Random.Range(1, 999);
+
+    //     string url = "https://image.pollinations.ai/prompt/" + safePrompt + 
+    //                  "?model=turbo" + 
+    //                  "&seed=" + randomSeed + 
+    //                  "&width=1024&height=1024&nologo=true";
+
+    //     Debug.Log("Generated URL: " + url);
+
+    //     using (UnityWebRequest uwr = UnityWebRequestTexture.GetTexture(url))
+    //     {
+    //         yield return uwr.SendWebRequest();
+
+    //         if (uwr.result == UnityWebRequest.Result.Success)
+    //         {
+    //             Texture2D tex = DownloadHandlerTexture.GetContent(uwr);
+                
+    //             if (tex != null)
+    //             {
+    //                 tex.name = "AI_" + prompt;
+    //                 StartGame(tex);
+    //                 messageInput.text = "";
+    //             }
+    //         }
+    //         else
+    //         {
+    //             Debug.LogError("Error: " + uwr.error + " | Server: " + uwr.downloadHandler.text);
+    //         }
+    //     }
+        
+    //     sendButton.interactable = true;
+    // }
+    // IEnumerator GenerateImagePollinations(string prompt)
+    // {
+    //     string myApiKey = "sk_4qNn1XYTX4dFNXxSNy2pEnFAs52ffmI2"; // Replace with your actual key from enter.pollinations.ai
+    //     string safePrompt = UnityWebRequest.EscapeURL(prompt);
+    //     int randomSeed = Random.Range(1, 99999);
+
+    //     // Using the validated 'flux' model we found in the previous error
+    //     string url = $"https://gen.pollinations.ai/image/{safePrompt}?model=nanobanana&seed={randomSeed}&width=256&height=256&nologo=true";
+    //     Debug.Log("Generated URL: " + url);
+    //     using (UnityWebRequest uwr = UnityWebRequestTexture.GetTexture(url))
+    //     {
+    //         // ADD THIS LINE for the 401 error:
+    //         uwr.SetRequestHeader("Authorization", "Bearer " + myApiKey);
+
+    //         yield return uwr.SendWebRequest();
+
+    //         if (uwr.result == UnityWebRequest.Result.Success)
+    //         {
+    //             Texture2D tex = DownloadHandlerTexture.GetContent(uwr);
+    //             if (tex != null)
+    //             {
+    //                 tex.name = "AI_" + prompt;
+    //                 StartGame(tex);
+    //                 messageInput.text = "";
+    //             }
+    //         }
+    //         else
+    //         {
+    //             Debug.LogError($"Error {uwr.responseCode}: {uwr.error}");
+    //             // If you get a 403 here, it means your 'Pollen' balance is empty!
+    //         }
+    //     }
+        
+    //     sendButton.interactable = true;
+    //     sendButton.gameObject.SetActive(true);
+    // }
+
+    IEnumerator GenerateImageFromLocalSD(string prompt)
     {
-        string safePrompt = UnityWebRequest.EscapeURL(prompt);
+        string url = "http://132.68.60.38:7860/sdapi/v1/txt2img";
 
-        int randomSeed = Random.Range(1, 999);
-
-        string url = "https://image.pollinations.ai/prompt/" + safePrompt + 
-                     "?model=turbo" + 
-                     "&seed=" + randomSeed + 
-                     "&width=1024&height=1024&nologo=true";
-
-        Debug.Log("Generated URL: " + url);
-
-        using (UnityWebRequest uwr = UnityWebRequestTexture.GetTexture(url))
+        // Create the payload object (matches your Python example)
+        var payload = new
         {
+            prompt = prompt,
+            negative_prompt = "lowres, blurry, jpeg artifacts",
+            steps = 25,
+            cfg_scale = 7,
+            width = 512,
+            height = 512,
+            sampler_name = "DPM++ 2M Karras",
+            seed = -1
+        };
+
+        string jsonPayload = JsonConvert.SerializeObject(payload);
+        
+        using (UnityWebRequest uwr = new UnityWebRequest(url, "POST"))
+        {
+            byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonPayload);
+            uwr.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            uwr.downloadHandler = new DownloadHandlerBuffer();
+            uwr.SetRequestHeader("Content-Type", "application/json");
+
             yield return uwr.SendWebRequest();
 
             if (uwr.result == UnityWebRequest.Result.Success)
             {
-                Texture2D tex = DownloadHandlerTexture.GetContent(uwr);
-                
-                if (tex != null)
+                // Parse the JSON response
+                var responseData = JObject.Parse(uwr.downloadHandler.text);
+                // SD API returns an array of images in base64
+                string base64String = responseData["images"][0].ToString();
+
+                // Handle potential data:image/png;base64, prefix
+                if (base64String.Contains(","))
                 {
-                    tex.name = "AI_" + prompt;
+                    base64String = base64String.Split(',')[1];
+                }
+
+                byte[] imageBytes = System.Convert.FromBase64String(base64String);
+                
+                // Create Texture
+                Texture2D tex = new Texture2D(2, 2);
+                if (tex.LoadImage(imageBytes))
+                {
+                    tex.name = "SD_" + prompt;
                     StartGame(tex);
                     messageInput.text = "";
                 }
             }
             else
             {
-                Debug.LogError("Error: " + uwr.error + " | Server: " + uwr.downloadHandler.text);
+                Debug.LogError($"SD Error: {uwr.error} - {uwr.downloadHandler.text}");
             }
         }
-        
-        sendButton.interactable = true;
+
     }
 
     public void StartGame(Texture2D jigsawTexture)
@@ -145,7 +265,10 @@ public class PromptsInput : MonoBehaviour
             UpdateBorder(totalPuzzleWidth, totalPuzzleHeight);  
             Scatter();       
         });
-        
+        currentElapsedTime = 0f;
+        isTimerRunning = true; 
+        if(timerText != null) timerText.gameObject.SetActive(true);
+        startTime = Time.time;
     }
 
 
@@ -216,6 +339,11 @@ public class PromptsInput : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (isTimerRunning)
+        {
+            currentElapsedTime += Time.deltaTime;
+            UpdateTimerDisplay();
+        }
         // Debug.Log("Update function running.");
         if (Input.GetMouseButtonDown(0))
         {
@@ -245,6 +373,15 @@ public class PromptsInput : MonoBehaviour
         newPosition += offset;
         draggingPiece.position = newPosition;
         }
+    }
+
+    private void UpdateTimerDisplay()
+    {
+        if (timerText == null) return;
+
+        int minutes = Mathf.FloorToInt(currentElapsedTime / 60);
+        int seconds = Mathf.FloorToInt(currentElapsedTime % 60);
+        timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
     }
 
     private void SnapAndDisableIfCorrect()
@@ -280,6 +417,29 @@ public class PromptsInput : MonoBehaviour
             piecesCorrect++;
             if (piecesCorrect == pieces.Count)
             {
+                isTimerRunning = false;
+                timeTaken = Time.time - startTime;
+                string difficultyName = "easy";
+                if (Settings.Instance != null && !string.IsNullOrEmpty(Settings.Instance.difficulty))
+                {
+                    difficultyName = Settings.Instance.difficulty;
+                    difficultyName = difficultyName.ToLower();
+                    Debug.Log($"Difficulty from Settings: {difficultyName}");
+                }
+                else
+                {
+                    Debug.LogWarning("Settings.Instance is missing! Defaulting difficulty to 'easy'.");
+                }
+
+                // 2. Submit Score Safely
+                if (LeaderboardManager.Instance != null)
+                {
+                    LeaderboardManager.Instance.SubmitScore(difficultyName, timeTaken);
+                }
+                else
+                {
+                    Debug.LogWarning("LeaderboardManager.Instance is missing! Score could not be submitted.");
+                }
                 playAgainButton.SetActive(true);
                 emoji.SetActive(true);
             }
@@ -287,6 +447,7 @@ public class PromptsInput : MonoBehaviour
     }
     public void RestartGame()
     {
+        ResetTimerUI();
         Debug.Log("RestartGame function running.");
         // Destroy all the puzzle pieces.
         foreach (Transform piece in pieces)
@@ -299,12 +460,15 @@ public class PromptsInput : MonoBehaviour
         // Show the level select UI.
         playAgainButton.SetActive(false);
         emoji.SetActive(false);
+        timerText.gameObject.SetActive(false);
+        sendButton.interactable = true;
         sendButton.gameObject.SetActive(true);
         messageInput.gameObject.SetActive(true);
         ingame = false;
     }
     public void OnClickReturn()
     {
+        ResetTimerUI();
         isGameActive = false;
         if (ingame)
         {
@@ -318,7 +482,9 @@ public class PromptsInput : MonoBehaviour
             // Show the level select UI.
             playAgainButton.SetActive(false);
             emoji.SetActive(false);
+            timerText.gameObject.SetActive(false);
             ingame = false;
+            sendButton.interactable = true;
             sendButton.gameObject.SetActive(true);
             messageInput.gameObject.SetActive(true);
         }
@@ -327,6 +493,17 @@ public class PromptsInput : MonoBehaviour
             Debug.LogWarning("see levelSelectPanel as true.");
             ingame = false;
             screenManager.ShowScreen(ModePanelIndex);
-        } 
+        }
+    }
+
+    private void ResetTimerUI()
+    {
+        isTimerRunning = false;
+        currentElapsedTime = 0f;
+        if(timerText != null) 
+        {
+            timerText.text = "00:00";
+            timerText.gameObject.SetActive(false); // Optional: hide when not in game
+        }
     }
 }

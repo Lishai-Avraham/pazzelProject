@@ -18,6 +18,10 @@ public class ImageUploader : MonoBehaviour
     [SerializeField] private GameObject playAgainButton;
     [SerializeField] private GameObject emoji;
     [SerializeField] private PythonJigsawGenerator pythonGenerator;
+    [Header("Timer UI")]
+    [SerializeField] private TextMeshProUGUI timerText;
+    private float currentElapsedTime;
+    private bool isTimerRunning = false;
 
     private Texture2D selectedTexture;
     private List<Transform> pieces;
@@ -30,14 +34,19 @@ public class ImageUploader : MonoBehaviour
     int ModePanelIndex = 1;
     private bool inlevels = true;
     private bool isGameActive = false;
+    private float startTime;
+    private double timeTaken;
 
     private void Start()
     {
+        if(timerText != null) timerText.text = "00:00";
+        timerText.gameObject.SetActive(false);
         if (Settings.Instance != null)
         {
             difficulty = Settings.Instance.pieces;
         }
     }
+
     public void PickImage()
     {
         // Opens Android's gallery
@@ -56,7 +65,7 @@ public class ImageUploader : MonoBehaviour
                 // Preview it (optional)
                 if (previewImage != null)
                     previewImage.texture = texture;
-
+                timerText.gameObject.SetActive(true);
                 // Send to your jigsaw function
                 StartGame(texture);
             }
@@ -111,8 +120,12 @@ public class ImageUploader : MonoBehaviour
 
             UpdateBorder(totalPuzzleWidth, totalPuzzleHeight);  
             
-            Scatter();       
+            Scatter(); 
+            isTimerRunning = true; 
+            if(timerText != null) timerText.gameObject.SetActive(true);
+            startTime = Time.time;      
         });
+        
     }
 
     // Place the pieces randomly in the visible area.
@@ -139,7 +152,7 @@ public class ImageUploader : MonoBehaviour
         }
     }
     // Update the border to fit the chosen puzzle.
-      public void UpdateBorder(float totalWidth, float totalHeight)
+    public void UpdateBorder(float totalWidth, float totalHeight)
     {
         LineRenderer lineRenderer = gameHolder.GetComponent<LineRenderer>();
         if (lineRenderer == null) {
@@ -172,11 +185,16 @@ public class ImageUploader : MonoBehaviour
       lineRenderer.startWidth = 0.15f;
       lineRenderer.endWidth = 0.15f;
       lineRenderer.enabled = true;
-  }
+    }
 
     // Update is called once per frame
     void Update()
     {
+        if (isTimerRunning)
+        {
+            currentElapsedTime += Time.deltaTime;
+            UpdateTimerDisplay();
+        }
         // Debug.Log("Update function running.");
         if (Input.GetMouseButtonDown(0))
         {
@@ -208,6 +226,15 @@ public class ImageUploader : MonoBehaviour
         }
     }
 
+    private void UpdateTimerDisplay()
+    {
+        if (timerText == null) return;
+
+        int minutes = Mathf.FloorToInt(currentElapsedTime / 60);
+        int seconds = Mathf.FloorToInt(currentElapsedTime % 60);
+        timerText.text = string.Format("{0:00}:{1:00}", minutes, seconds);
+    }
+
     private void SnapAndDisableIfCorrect()
     {
       if (draggingPiece == null || pieces.Count == 0) return;
@@ -237,14 +264,38 @@ public class ImageUploader : MonoBehaviour
           piecesCorrect++;
           if (piecesCorrect == pieces.Count)
           {
-              playAgainButton.SetActive(true);
-              emoji.SetActive(true);
+            isTimerRunning = false;
+            timeTaken = Time.time - startTime;
+            string difficultyName = "easy";
+            if (Settings.Instance != null && !string.IsNullOrEmpty(Settings.Instance.difficulty))
+            {
+                difficultyName = Settings.Instance.difficulty;
+                difficultyName = difficultyName.ToLower();
+                Debug.Log($"Difficulty from Settings: {difficultyName}");
+            }
+            else
+            {
+                Debug.LogWarning("Settings.Instance is missing! Defaulting difficulty to 'easy'.");
+            }
+
+            // 2. Submit Score Safely
+            if (LeaderboardManager.Instance != null)
+            {
+                LeaderboardManager.Instance.SubmitScore(difficultyName, timeTaken);
+            }
+            else
+            {
+                Debug.LogWarning("LeaderboardManager.Instance is missing! Score could not be submitted.");
+            }
+            playAgainButton.SetActive(true);
+            emoji.SetActive(true);
           }
       }
     }
 
     public void RestartGame()
     {
+        ResetTimerUI();
         Debug.Log("RestartGame function running.");
         // Destroy all the puzzle pieces.
         foreach (Transform piece in pieces)
@@ -262,6 +313,7 @@ public class ImageUploader : MonoBehaviour
     }
     public void OnClickReturn()
     {
+        ResetTimerUI();
         Debug.Log("OnClickReturn function running.");
         isGameActive = false;
         if (inlevels == true)
@@ -286,6 +338,17 @@ public class ImageUploader : MonoBehaviour
         uploadButton.gameObject.SetActive(true);
         inlevels = true;
         } 
+    }
+
+    private void ResetTimerUI()
+    {
+        isTimerRunning = false;
+        currentElapsedTime = 0f;
+        if(timerText != null) 
+        {
+            timerText.text = "00:00";
+            timerText.gameObject.SetActive(false); // Optional: hide when not in game
+        }
     }
 }
 
