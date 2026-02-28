@@ -352,11 +352,45 @@ public class GameManager : MonoBehaviour
   }
 
     // Update the border to fit the chosen puzzle.
-    public void UpdateBorder(float totalWidth, float totalHeight)
-    {
-        LineRenderer lineRenderer = gameHolder.GetComponent<LineRenderer>();
-        if (lineRenderer == null) {
-            lineRenderer = gameHolder.gameObject.AddComponent<LineRenderer>();
+  //   public void UpdateBorder(float totalWidth, float totalHeight)
+  //   {
+  //       LineRenderer lineRenderer = gameHolder.GetComponent<LineRenderer>();
+  //       if (lineRenderer == null) {
+  //           lineRenderer = gameHolder.gameObject.AddComponent<LineRenderer>();
+  //     }
+
+  //     if (lineRenderer.material == null) {
+  //         lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+  //         lineRenderer.startColor = Color.white;
+  //         lineRenderer.endColor = Color.white;
+  //     }
+
+  //     float halfWidth = totalWidth / 2f;
+  //     float halfHeight = totalHeight / 2f;
+  //     float borderZ = -1.0f; 
+
+  //     lineRenderer.positionCount = 4;
+  //     lineRenderer.loop = true;
+  //     lineRenderer.useWorldSpace = false;
+      
+  //     lineRenderer.sortingOrder = 20; 
+
+  //     lineRenderer.SetPosition(0, new Vector3(-halfWidth, halfHeight, borderZ));
+  //     lineRenderer.SetPosition(1, new Vector3(halfWidth, halfHeight, borderZ));
+  //     lineRenderer.SetPosition(2, new Vector3(halfWidth, -halfHeight, borderZ));
+  //     lineRenderer.SetPosition(3, new Vector3(-halfWidth, -halfHeight, borderZ));
+
+  //     lineRenderer.startWidth = 0.15f;
+  //     lineRenderer.endWidth = 0.15f;
+  //     lineRenderer.enabled = true;
+  // }
+  // Update the border to fit the chosen puzzle.
+  public void UpdateBorder(float totalWidth, float totalHeight)
+  {
+      // --- 1. Your Existing Line Renderer (The Outline) ---
+      LineRenderer lineRenderer = gameHolder.GetComponent<LineRenderer>();
+      if (lineRenderer == null) {
+          lineRenderer = gameHolder.gameObject.AddComponent<LineRenderer>();
       }
 
       if (lineRenderer.material == null) {
@@ -373,7 +407,8 @@ public class GameManager : MonoBehaviour
       lineRenderer.loop = true;
       lineRenderer.useWorldSpace = false;
       
-      lineRenderer.sortingOrder = 20; 
+      // Changed sorting order to -10 so it sits behind the puzzle pieces (pieces are at 10)
+      lineRenderer.sortingOrder = -10; 
 
       lineRenderer.SetPosition(0, new Vector3(-halfWidth, halfHeight, borderZ));
       lineRenderer.SetPosition(1, new Vector3(halfWidth, halfHeight, borderZ));
@@ -383,6 +418,31 @@ public class GameManager : MonoBehaviour
       lineRenderer.startWidth = 0.15f;
       lineRenderer.endWidth = 0.15f;
       lineRenderer.enabled = true;
+
+      // --- 2. NEW: The Dark Background Mat ---
+      Transform boardMat = gameHolder.Find("PuzzleMat");
+      if (boardMat == null)
+      {
+          GameObject matObj = new GameObject("PuzzleMat");
+          matObj.transform.SetParent(gameHolder);
+          matObj.transform.localPosition = new Vector3(0, 0, 1f); 
+          
+          SpriteRenderer sr = matObj.AddComponent<SpriteRenderer>();
+          // Create a simple black sprite entirely through code
+          Texture2D tex = new Texture2D(1, 1);
+          tex.SetPixel(0, 0, Color.black);
+          tex.Apply();
+          sr.sprite = Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f));
+          
+          // Set to a 60% transparent black
+          sr.color = new Color(0, 0, 0, 0.6f); 
+          sr.sortingOrder = -15; // Placed behind the LineRenderer
+          
+          boardMat = matObj.transform;
+      }
+
+      // Automatically scale the mat to exactly match your puzzle dimensions
+      boardMat.localScale = new Vector3(totalWidth, totalHeight, 1f);
   }
 
   // Update is called once per frame
