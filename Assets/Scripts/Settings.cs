@@ -5,9 +5,13 @@ public class Settings : MonoBehaviour
     public static Settings Instance;
 
     public bool isMusicOn = true;
+    public bool isSfxOn = true;
+    public bool isAnimationOn = true;
     public string difficulty = "Easy";
     public int pieces = 2; // number of puzzle pieces, derived from difficulty
 
+    public void SetSfx(bool isOn) { isSfxOn = isOn; }
+    public void SetAnimation(bool isOn) { isAnimationOn = isOn; }
     private void Awake()
     {
         // TEMPORARY – run ONCE to reset old bad values

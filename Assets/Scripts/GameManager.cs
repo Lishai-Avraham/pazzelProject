@@ -171,6 +171,10 @@ public class GameManager : MonoBehaviour
 
   [Header("Timer UI")]
   [SerializeField] private TextMeshProUGUI timerText;
+  [Header("Audio & Effects")]
+  [SerializeField] private AudioSource sfxSource;
+  [SerializeField] private AudioClip snapSound;
+  [SerializeField] private AudioClip winSound;
   private float currentElapsedTime;
   private bool isTimerRunning = false;
 
@@ -518,12 +522,26 @@ public class GameManager : MonoBehaviour
           
           Collider2D col2D = draggingPiece.GetComponent<Collider2D>();
           if(col2D != null) col2D.enabled = false;
+          if (Settings.Instance.isSfxOn && sfxSource != null && snapSound != null)
+          {
+              sfxSource.PlayOneShot(snapSound);
+          }
+
+          // --- NEW: Play Snap Animation ---
+        //   if (Settings.Instance.isAnimationOn)
+        //   {
+        //       StartCoroutine(AnimatePieceSnap(draggingPiece));
+        //   }
 
           piecesCorrect++;
           if (piecesCorrect == pieces.Count)
           {
             isTimerRunning = false;
             timeTaken = Time.time - startTime;
+            if (Settings.Instance.isSfxOn && sfxSource != null && winSound != null)
+            {
+                sfxSource.PlayOneShot(winSound);
+            }
             string difficultyName = "easy";
             if (Settings.Instance != null && !string.IsNullOrEmpty(Settings.Instance.difficulty))
             {
@@ -551,6 +569,24 @@ public class GameManager : MonoBehaviour
           }
       }
   }
+
+  private IEnumerator AnimatePieceSnap(Transform piece)
+  {
+      Vector3 originalScale = piece.localScale;
+      
+      // Scale up slightly for a "pop" effect
+      piece.localScale = originalScale * 1.15f;
+      
+      // Wait a fraction of a second
+      yield return new WaitForSeconds(0.1f);
+      
+      // Return to normal scale
+      if (piece != null) 
+      {
+          piece.localScale = originalScale;
+      }
+  }
+  
   public void RestartGame()
   {
     ResetTimerUI();

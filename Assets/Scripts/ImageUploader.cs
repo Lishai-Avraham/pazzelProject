@@ -20,6 +20,10 @@ public class ImageUploader : MonoBehaviour
     [SerializeField] private PythonJigsawGenerator pythonGenerator;
     [Header("Timer UI")]
     [SerializeField] private TextMeshProUGUI timerText;
+    [Header("Audio & Effects")]
+    [SerializeField] private AudioSource sfxSource;
+    [SerializeField] private AudioClip snapSound;
+    [SerializeField] private AudioClip winSound;
     private float currentElapsedTime;
     private bool isTimerRunning = false;
 
@@ -260,12 +264,20 @@ public class ImageUploader : MonoBehaviour
           
           Collider2D col2D = draggingPiece.GetComponent<Collider2D>();
           if(col2D != null) col2D.enabled = false;
+          if (Settings.Instance.isSfxOn && sfxSource != null && snapSound != null)
+          {
+              sfxSource.PlayOneShot(snapSound);
+          }
 
           piecesCorrect++;
           if (piecesCorrect == pieces.Count)
           {
             isTimerRunning = false;
             timeTaken = Time.time - startTime;
+            if (Settings.Instance.isSfxOn && sfxSource != null && winSound != null)
+            {
+                sfxSource.PlayOneShot(winSound);
+            }
             string difficultyName = "easy";
             if (Settings.Instance != null && !string.IsNullOrEmpty(Settings.Instance.difficulty))
             {

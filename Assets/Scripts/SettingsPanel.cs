@@ -6,6 +6,8 @@ public class SettingsPanel : MonoBehaviour
 {
     [Header("UI Elements")]
     [SerializeField] private Toggle musicToggle;
+    [SerializeField] private Toggle sfxToggle;
+//    [SerializeField] private Toggle animationToggle;
     [SerializeField] private TMP_Dropdown difficultyDropdown;
     [SerializeField] private Button saveButton;
     [SerializeField] private ScreenManager screenManager;
@@ -34,6 +36,8 @@ public class SettingsPanel : MonoBehaviour
 
         // Load current settings
         musicToggle.isOn = Settings.Instance.isMusicOn;
+        sfxToggle.isOn = Settings.Instance.isSfxOn;
+        // animationToggle.isOn = Settings.Instance.isAnimationOn;
         
         int index = System.Array.IndexOf(difficulties, Settings.Instance.difficulty);
         difficultyDropdown.value = index >= 0 ? index : 0;
@@ -42,6 +46,7 @@ public class SettingsPanel : MonoBehaviour
         Debug.Log($"Loading setting: isMusicOn = {Settings.Instance.isMusicOn}. Setting toggle to {musicToggle.isOn}");
         // Listeners
         musicToggle.onValueChanged.AddListener(OnMusicToggleChanged);
+        sfxToggle.onValueChanged.AddListener(OnSfxToggleChanged);
         difficultyDropdown.onValueChanged.AddListener(OnDifficultyChanged);
         saveButton.onClick.AddListener(SaveSettings);
     }
@@ -58,6 +63,11 @@ public class SettingsPanel : MonoBehaviour
         Settings.Instance.SetMusic(value);
         Debug.Log($"Settings.Instance.isMusicOn is now: {Settings.Instance.isMusicOn}");
         ApplyMusicState();
+    }
+
+    private void OnSfxToggleChanged(bool value)
+    {
+        Settings.Instance.SetSfx(value);
     }
 
     private void ApplyMusicState()
