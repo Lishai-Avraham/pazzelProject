@@ -323,32 +323,95 @@ public class ImageUploader : MonoBehaviour
         uploadButton.gameObject.SetActive(true);
         inlevels = true;
     }
+    private void OnEnable()
+    {
+        // Force the screen to reset to its default "Upload Menu" state
+        isGameActive = false;
+        inlevels = true;
+        
+        if (uploadButton != null) uploadButton.gameObject.SetActive(true);
+        if (playAgainButton != null) playAgainButton.SetActive(false);
+        if (emoji != null) emoji.SetActive(false);
+        
+        // Safely clear any leftover pieces
+        if (pieces != null)
+        {
+            foreach (Transform piece in pieces) Destroy(piece.gameObject);
+            pieces.Clear();
+        }
+        
+        // Hide the puzzle border
+        if (gameHolder != null && gameHolder.GetComponent<LineRenderer>() != null)
+        {
+            gameHolder.GetComponent<LineRenderer>().enabled = false;
+        }
+
+        ResetTimerUI();
+    }
+    // public void OnClickReturn()
+    // {
+    //     ResetTimerUI();
+    //     Debug.Log("OnClickReturn function running.");
+    //     isGameActive = false;
+    //     if (inlevels == true)
+    //     {
+    //     Debug.LogWarning("see uploadButton as true.");
+    //     uploadButton.gameObject.SetActive(false);
+    //     inlevels = false;
+    //     screenManager.ShowScreen(ModePanelIndex);
+    //     }
+    //     else
+    //     {
+    //     foreach (Transform piece in pieces)
+    //     {
+    //         Destroy(piece.gameObject);
+    //     }
+    //     pieces.Clear();
+    //     // Hide the outline
+    //     gameHolder.GetComponent<LineRenderer>().enabled = false;
+    //     // Show the level select UI.
+    //     playAgainButton.SetActive(false);
+    //     emoji.SetActive(false);
+    //     uploadButton.gameObject.SetActive(true);
+    //     inlevels = true;
+    //     } 
+    // }
     public void OnClickReturn()
     {
         ResetTimerUI();
         Debug.Log("OnClickReturn function running.");
         isGameActive = false;
+
         if (inlevels == true)
         {
-        Debug.LogWarning("see uploadButton as true.");
-        uploadButton.gameObject.SetActive(false);
-        inlevels = false;
-        screenManager.ShowScreen(ModePanelIndex);
+            Debug.LogWarning("Returning to Mode Screen.");
+            uploadButton.gameObject.SetActive(false);
+            inlevels = false;
+            screenManager.ShowScreen(ModePanelIndex);
         }
         else
         {
-        foreach (Transform piece in pieces)
-        {
-            Destroy(piece.gameObject);
-        }
-        pieces.Clear();
-        // Hide the outline
-        gameHolder.GetComponent<LineRenderer>().enabled = false;
-        // Show the level select UI.
-        playAgainButton.SetActive(false);
-        emoji.SetActive(false);
-        uploadButton.gameObject.SetActive(true);
-        inlevels = true;
+            // --- FIX: Safely check if pieces exist before destroying them ---
+            if (pieces != null)
+            {
+                foreach (Transform piece in pieces)
+                {
+                    Destroy(piece.gameObject);
+                }
+                pieces.Clear();
+            }
+
+            // Hide the outline
+            if (gameHolder != null && gameHolder.GetComponent<LineRenderer>() != null)
+            {
+                gameHolder.GetComponent<LineRenderer>().enabled = false;
+            }
+            
+            // Show the level select UI.
+            playAgainButton.SetActive(false);
+            emoji.SetActive(false);
+            uploadButton.gameObject.SetActive(true);
+            inlevels = true;
         } 
     }
 
