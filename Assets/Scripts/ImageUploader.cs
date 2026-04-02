@@ -66,7 +66,6 @@ public class ImageUploader : MonoBehaviour
                     return;
                 }
 
-                // Preview it (optional)
                 if (previewImage != null)
                     previewImage.texture = texture;
                 timerText.gameObject.SetActive(true);
@@ -348,34 +347,7 @@ public class ImageUploader : MonoBehaviour
 
         ResetTimerUI();
     }
-    // public void OnClickReturn()
-    // {
-    //     ResetTimerUI();
-    //     Debug.Log("OnClickReturn function running.");
-    //     isGameActive = false;
-    //     if (inlevels == true)
-    //     {
-    //     Debug.LogWarning("see uploadButton as true.");
-    //     uploadButton.gameObject.SetActive(false);
-    //     inlevels = false;
-    //     screenManager.ShowScreen(ModePanelIndex);
-    //     }
-    //     else
-    //     {
-    //     foreach (Transform piece in pieces)
-    //     {
-    //         Destroy(piece.gameObject);
-    //     }
-    //     pieces.Clear();
-    //     // Hide the outline
-    //     gameHolder.GetComponent<LineRenderer>().enabled = false;
-    //     // Show the level select UI.
-    //     playAgainButton.SetActive(false);
-    //     emoji.SetActive(false);
-    //     uploadButton.gameObject.SetActive(true);
-    //     inlevels = true;
-    //     } 
-    // }
+
     public void OnClickReturn()
     {
         ResetTimerUI();

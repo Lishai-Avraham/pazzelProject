@@ -14,138 +14,6 @@ public class JigsawPieceData
   public string image; // base64 string from API
 }
 
-public class Triangulator
-{
-    private List<Vector2> m_points = new List<Vector2>();
-
-    public Triangulator(Vector2[] points) {
-        m_points = new List<Vector2>(points);
-    }
-    public Triangulator(Vector3[] points) { // Overload for Vector3
-        for(int i=0; i<points.Length; i++) m_points.Add(new Vector2(points[i].x, points[i].y));
-    }
-
-    public int[] Triangulate() {
-        List<int> indices = new List<int>();
-        int n = m_points.Count;
-        if (n < 3) return indices.ToArray();
-
-        int[] V = new int[n];
-        if (Area() > 0) {
-            for (int v = 0; v < n; v++) V[v] = v;
-        } else {
-            for (int v = 0; v < n; v++) V[v] = (n - 1) - v;
-        }
-
-        int nv = n;
-        int count = 2 * nv;
-        for (int m = 0, v = nv - 1; nv > 2; ) {
-            if ((count--) <= 0) return indices.ToArray();
-
-            int u = v;
-            if (nv <= u) u = 0;
-            v = u + 1;
-            if (nv <= v) v = 0;
-            int w = v + 1;
-            if (nv <= w) w = 0;
-
-            if (Snip(u, v, w, nv, V)) {
-                int a, b, c, s, t;
-                a = V[u]; b = V[v]; c = V[w];
-                indices.Add(a); indices.Add(b); indices.Add(c);
-                m++;
-                for (s = v, t = v + 1; t < nv; s++, t++) V[s] = V[t];
-                nv--;
-                count = 2 * nv;
-            }
-        }
-        indices.Reverse();
-        return indices.ToArray();
-    }
-
-    private float Area() {
-        int n = m_points.Count;
-        float A = 0.0f;
-        for (int p = n - 1, q = 0; q < n; p = q++) {
-            A += m_points[p].x * m_points[q].y - m_points[q].x * m_points[p].y;
-        }
-        return (A * 0.5f);
-    }
-
-    private bool Snip(int u, int v, int w, int n, int[] V) {
-        int p;
-        float Ax, Ay, Bx, By, Cx, Cy, Px, Py;
-        Ax = m_points[V[u]].x; Ay = m_points[V[u]].y;
-        Bx = m_points[V[v]].x; By = m_points[V[v]].y;
-        Cx = m_points[V[w]].x; Cy = m_points[V[w]].y;
-        if (Mathf.Epsilon > (((Bx - Ax) * (Cy - Ay)) - ((By - Ay) * (Cx - Ax)))) return false;
-        for (p = 0; p < n; p++) {
-            if ((p == u) || (p == v) || (p == w)) continue;
-            Px = m_points[V[p]].x; Py = m_points[V[p]].y;
-            if (InsideTriangle(Ax, Ay, Bx, By, Cx, Cy, Px, Py)) return false;
-        }
-        return true;
-    }
-
-    private bool InsideTriangle(float Ax, float Ay, float Bx, float By, float Cx, float Cy, float Px, float Py) {
-        float ax, ay, bx, by, cx, cy, apx, apy, bpx, bpy, cpx, cpy;
-        float cCROSSap, bCROSScp, aCROSSbp;
-        ax = Cx - Bx; ay = Cy - By; bx = Ax - Cx; by = Ay - Cy; cx = Bx - Ax; cy = By - Ay;
-        apx = Px - Ax; apy = Py - Ay; bpx = Px - Bx; bpy = Py - By; cpx = Px - Cx; cpy = Py - Cy;
-        aCROSSbp = ax * bpy - ay * bpx;
-        cCROSSap = cx * apy - cy * apx;
-        bCROSScp = bx * cpy - by * cpx;
-        return ((aCROSSbp >= 0.0f) && (bCROSScp >= 0.0f) && (cCROSSap >= 0.0f));
-    }
-}
-
-public static class JigsawUtils
-{
-    // Define the shape of a "Tab" relative to a straight line of length 1
-    // You can tweak these Vector2 points to change the style of your puzzle piece
-    private static readonly Vector2[] BeizerPath = new Vector2[] {
-        new Vector2(0, 0),             // Start
-        new Vector2(0.35f, 0),         // Shoulder start
-        new Vector2(0.35f, 0.15f),     // Neck start
-        new Vector2(0.35f, 0.3f),      // Head Left
-        new Vector2(0.5f, 0.3f),       // Head Top (Middle)
-        new Vector2(0.65f, 0.3f),      // Head Right
-        new Vector2(0.65f, 0.15f),     // Neck end
-        new Vector2(0.65f, 0),         // Shoulder end
-        new Vector2(1, 0)              // End
-    };
-
-    // 0 = Flat, 1 = Tab, -1 = Hole
-    public static Vector3[] GetBezierCurve(Vector3 start, Vector3 end, int type)
-    {
-        // If it's a flat edge, just return start and end
-        if (type == 0) return new Vector3[] { start, end };
-
-        List<Vector3> points = new List<Vector3>();
-        float scale = Vector3.Distance(start, end);
-        
-        // Calculate direction and perpendicular for rotation
-        Vector3 dir = (end - start).normalized;
-        Vector3 normal = new Vector3(-dir.y, dir.x, 0); // 2D Perpendicular
-
-        // If it's a hole (-1), we flip the normal direction
-        if (type == -1) normal = -normal;
-
-        // Iterate through our predefined Bezier shape
-        // Note: For a smoother curve, you would use actual Bezier interpolation here.
-        // This is a simplified point-mapping for performance.
-        for (int i = 0; i < BeizerPath.Length; i++)
-        {
-            Vector2 p = BeizerPath[i];
-            
-            // Lerp along the line (X) + Add Normal Offset (Y)
-            Vector3 point = start + (dir * p.x * scale) + (normal * p.y * scale * 0.8f); // 0.8f affects tab height
-            points.Add(point);
-        }
-        return points.ToArray();
-    }
-}
-
 public class GameManager : MonoBehaviour
 {
   [Header("Game Elements")]
@@ -334,11 +202,11 @@ public class GameManager : MonoBehaviour
 
   void Scatter()
   {
-      // חישוב גבולות המסך כדי שהחלקים לא יצאו החוצה
+      // Calculate screen boundaries to prevent the pieces from going off-scree
       float screenHeight = Camera.main.orthographicSize * 2f;
       float screenWidth = screenHeight * Camera.main.aspect;
 
-      float margin = width; // משאירים מקום של חתיכה אחת מהקצה
+      float margin = width; // Leave a margin of one piece from the edge
       float safeX = (screenWidth / 2) - margin;
       float safeY = (screenHeight / 2) - margin;
 
@@ -347,7 +215,7 @@ public class GameManager : MonoBehaviour
           float randomX = UnityEngine.Random.Range(-safeX, safeX);
           float randomY = UnityEngine.Random.Range(-safeY, safeY);
 
-          // Z=-5 מבטיח שהחלקים יהיו מעל הרקע (שהוא בדרך כלל ב-0)
+          // Z=-5 ensures the pieces are above the background (which is usually at 0)
           piece.localPosition = new Vector3(randomX, randomY, -5.0f);
           
           Collider2D col = piece.GetComponent<Collider2D>();
@@ -505,8 +373,7 @@ public class GameManager : MonoBehaviour
       int col = pieceIndex % dimensions.x;
       int row = pieceIndex / dimensions.x;
 
-      // חישוב המיקום הנכון - מבוסס על גודל הגריד ומרכוז סביב ה-0,0
-      // הנוסחה הזו מניחה שה-GameHolder נמצא ב-0,0,0
+      // Calculate the correct position - based on grid size and centered around 0,0
       float startX = -((dimensions.x * width) / 2) + (width / 2);
       float startY = ((dimensions.y * height) / 2) - (height / 2);
 
@@ -517,7 +384,6 @@ public class GameManager : MonoBehaviour
 
       if (Vector2.Distance(draggingPiece.localPosition, targetPosition) < (width / 2))
       {
-          // --- תיקון: Z=0 כשהחלק במקום, כדי שיהיה מתחת לחלקים שעדיין גוררים ---
           draggingPiece.localPosition = new Vector3(targetX, targetY, 0f); 
           
           Collider2D col2D = draggingPiece.GetComponent<Collider2D>();
@@ -527,7 +393,6 @@ public class GameManager : MonoBehaviour
               sfxSource.PlayOneShot(snapSound);
           }
 
-          // --- NEW: Play Snap Animation ---
         //   if (Settings.Instance.isAnimationOn)
         //   {
         //       StartCoroutine(AnimatePieceSnap(draggingPiece));
@@ -554,7 +419,7 @@ public class GameManager : MonoBehaviour
                 Debug.LogWarning("Settings.Instance is missing! Defaulting difficulty to 'easy'.");
             }
 
-            // 2. Submit Score Safely
+            // Submit Score
             if (LeaderboardManager.Instance != null)
             {
                 LeaderboardManager.Instance.SubmitScore(difficultyName, timeTaken);

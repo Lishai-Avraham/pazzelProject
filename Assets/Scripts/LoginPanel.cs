@@ -126,25 +126,5 @@ public class LoginPanel : MonoBehaviour
     }
   }
 
-  // private async Task UpdatePasswordAsync(string currentPassword, string newPassword)
-  // {
-  //   try
-  //   {
-  //     await AuthenticationService.Instance.UpdatePasswordAsync(currentPassword, newPassword);
-  //     Debug.Log("Password updated.");
-  //   }
-  //   catch (AuthenticationException ex)
-  //   {
-  //     // Compare error code to AuthenticationErrorCodes
-  //     // Notify the player with the proper error message
-  //     Debug.LogException(ex);
-  //   }
-  //   catch (RequestFailedException ex)
-  //   {
-  //     // Compare error code to CommonErrorCodes
-  //     // Notify the player with the proper error message
-  //     Debug.LogException(ex);
-  //   }
-  // }
 }
   

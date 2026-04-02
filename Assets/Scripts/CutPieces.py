@@ -6,7 +6,6 @@ import random
 
 app = Flask(__name__)
 
-# --- פונקציית העזר ליצירת המסכה (לא השתנתה) ---
 def create_puzzle_piece_mask(size, left, top, right, bottom, tab_radius):
     padding = int(tab_radius * 3)
     width, height = size
@@ -42,7 +41,6 @@ def create_puzzle_piece_mask(size, left, top, right, bottom, tab_radius):
 @app.route('/cut_puzzle', methods=['POST'])
 def cut_puzzle():
     try:
-        # חזרנו לשיטה הישנה והטובה: קבלת קובץ ולא טקסט
         if 'image' not in request.files:
             return jsonify({"status": "error", "message": "No image file provided"}), 400
             
@@ -80,7 +78,6 @@ def cut_puzzle():
                     tab_radius
                 )
 
-                # חישוב יחס הגדלה (זה התיקון החשוב)
                 scale_x = final_w / piece_w
                 scale_y = final_h / piece_h
 
@@ -114,7 +111,6 @@ def cut_puzzle():
                     "scale_y": scale_y
                 })
 
-        # מחזירים רק את החלקים במבנה פשוט שיוניטי אוהב
         return jsonify({"pieces": pieces_data})
 
     except Exception as e:

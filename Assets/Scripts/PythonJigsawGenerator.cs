@@ -23,7 +23,7 @@ public class PieceListWrapper
 public class PythonJigsawGenerator : MonoBehaviour
 {
     [Header("Server Settings")]
-    [SerializeField] private string serverUrl = "http://127.0.0.1:5000/cut_puzzle";
+    [SerializeField] private string serverUrl = "http://192.168.1.119:5000/cut_puzzle";
 
     public float FinalPieceWidth { get; private set; }
     public float FinalPieceHeight { get; private set; }
@@ -44,6 +44,8 @@ public class PythonJigsawGenerator : MonoBehaviour
 
         using (UnityWebRequest www = UnityWebRequest.Post(serverUrl, form))
         {
+            www.certificateHandler = new ForceAcceptAll();
+            www.useHttpContinue = false;
             yield return www.SendWebRequest();
 
             if (www.result != UnityWebRequest.Result.Success)
@@ -78,7 +80,6 @@ public class PythonJigsawGenerator : MonoBehaviour
                     GameObject pieceObj = Instantiate(prefab, parent);
                     pieceObj.name = $"Piece_{data.row}_{data.col}";
 
-                    // --- תיקון נראות 1: איפוס מיקום Z ---
                     pieceObj.transform.localPosition = new Vector3(pieceObj.transform.localPosition.x, pieceObj.transform.localPosition.y, 0f);
 
                     byte[] decodedBytes = Convert.FromBase64String(data.image);
@@ -89,8 +90,6 @@ public class PythonJigsawGenerator : MonoBehaviour
                     SpriteRenderer sr = pieceObj.GetComponent<SpriteRenderer>();
                     sr.sprite = sprite;
 
-                    // --- תיקון נראות 2: העלאת סדר השכבה ---
-                    // זה מבטיח שהחתיכה תצויר מעל הרקע
                     sr.sortingOrder = 10; 
 
                     float scaleX = baseWidth * data.scale_x;
@@ -116,4 +115,9 @@ public class PythonJigsawGenerator : MonoBehaviour
             }
         }
     }
+}
+
+public class ForceAcceptAll : CertificateHandler
+{
+    protected override bool ValidateCertificate(byte[] certificateData) => true;
 }

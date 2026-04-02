@@ -160,7 +160,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      almost_finished_puzzle_blured_0: 556031062837794639
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

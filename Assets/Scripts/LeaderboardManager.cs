@@ -38,7 +38,7 @@ public class LeaderboardManager : MonoBehaviour
         {
             var playerEntry = await LeaderboardsService.Instance.AddPlayerScoreAsync(leaderboardId, timeInSeconds);
             int rank = playerEntry.Rank + 1; // Ranks are 0-indexed, so add 1 for display
-            Debug.Log($"Score Submitted! Rank: {playerEntry.Rank}");
+            Debug.Log($"Score Submitted! Rank: {rank}");
         }
         catch (System.Exception e)
         {
