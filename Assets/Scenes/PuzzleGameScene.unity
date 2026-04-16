@@ -16096,7 +16096,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d857d31090891849be4243f9fa51495, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverUrl: http://127.0.0.1:5000/cut_puzzle
+  serverUrl: http://192.168.1.119:5000/cut_puzzle
 --- !u!4 &2122601628
 Transform:
   m_ObjectHideFlags: 0

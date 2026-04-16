@@ -50,7 +50,7 @@ public class PythonJigsawGenerator : MonoBehaviour
 
             if (www.result != UnityWebRequest.Result.Success)
             {
-                Debug.LogError("Python Error: " + www.error + "\nResponse: " + www.downloadHandler.text);
+                Debug.LogError("Python Error: " + www.error + "\nResponse: " + www.downloadHandler.text +"\nURL:" + www.url);
             }
             else
             {

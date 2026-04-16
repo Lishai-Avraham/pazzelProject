@@ -320,6 +320,7 @@ public class GameManager : MonoBehaviour
   // Update is called once per frame
   void Update()
   {
+    if (!isGameActive || pieces == null || pieces.Count == 0) return;
     if (isTimerRunning)
     {
         currentElapsedTime += Time.deltaTime;
