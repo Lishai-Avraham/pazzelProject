@@ -66,11 +66,22 @@ public class PythonJigsawGenerator : MonoBehaviour
                 List<Transform> createdPieces = new List<Transform>();
 
                 float orthoHeight = Camera.main.orthographicSize * 2f;
-                float targetTotalHeight = orthoHeight * 0.7f;
+                float targetTotalHeight = orthoHeight * 0.65f;
+                Debug.Log($"Camera Ortho Size: {Camera.main.orthographicSize}, Target Height: {targetTotalHeight}");
                 
-                float baseHeight = targetTotalHeight / rows;
+                // float baseHeight = targetTotalHeight / rows;
+                // float aspect = (float)texture.width / texture.height;
+                // float baseWidth = baseHeight * aspect;
+
+                // FinalPieceWidth = baseWidth;
+                // FinalPieceHeight = baseHeight;
+
                 float aspect = (float)texture.width / texture.height;
-                float baseWidth = baseHeight * aspect;
+                float targetTotalWidth = targetTotalHeight * aspect;
+
+                // גודל "משבצת" של חתיכה בודדת ביחידות עולם
+                float baseWidth = targetTotalWidth / cols;
+                float baseHeight = targetTotalHeight / rows;
 
                 FinalPieceWidth = baseWidth;
                 FinalPieceHeight = baseHeight;
@@ -80,8 +91,8 @@ public class PythonJigsawGenerator : MonoBehaviour
                     GameObject pieceObj = Instantiate(prefab, parent);
                     pieceObj.name = $"Piece_{data.row}_{data.col}";
 
-                    pieceObj.transform.localPosition = new Vector3(pieceObj.transform.localPosition.x, pieceObj.transform.localPosition.y, 0f);
-
+                    // pieceObj.transform.localPosition = new Vector3(pieceObj.transform.localPosition.x, pieceObj.transform.localPosition.y, 0f);
+                    pieceObj.transform.localPosition = Vector3.zero;
                     byte[] decodedBytes = Convert.FromBase64String(data.image);
                     Texture2D pieceTex = new Texture2D(2, 2);
                     pieceTex.LoadImage(decodedBytes);
@@ -92,21 +103,44 @@ public class PythonJigsawGenerator : MonoBehaviour
 
                     sr.sortingOrder = 10; 
 
-                    float scaleX = baseWidth * data.scale_x;
-                    float scaleY = baseHeight * data.scale_y;
+                    // float scaleX = baseWidth * data.scale_x;
+                    // float scaleY = baseHeight * data.scale_y;
 
-                    float ppu = 100f; 
-                    float originalWorldWidth = pieceTex.width / ppu;
-                    float originalWorldHeight = pieceTex.height / ppu;
+                    // float ppu = 100f; 
+                    // float originalWorldWidth = pieceTex.width / ppu;
+                    // float originalWorldHeight = pieceTex.height / ppu;
 
+                    // pieceObj.transform.localScale = new Vector3(
+                    //     scaleX / originalWorldWidth,
+                    //     scaleY / originalWorldHeight,
+                    //     1f
+                    // );
+                    // גודל התמונה שהגיעה מהשרת בפיקסלים
+                    float spriteWidthPixels = pieceTex.width;
+                    float spriteHeightPixels = pieceTex.height;
+
+                    // המרה ליחידות עולם (לפי PPU 100 שזה הסטנדרט ביוניטי)
+                    float spriteWorldWidth = spriteWidthPixels / 100f;
+                    float spriteWorldHeight = spriteHeightPixels / 100f;
+
+                    // כמה החתיכה צריכה להיות גדולה ביחידות עולם (כולל הבליטות)
+                    float desiredWorldWidth = baseWidth * data.scale_x;
+                    float desiredWorldHeight = baseHeight * data.scale_y;
+
+                    // קביעת ה-Scale - הערך כאן אמור לצאת קרוב ל-1, מה שיפתור את הבעיה
                     pieceObj.transform.localScale = new Vector3(
-                        scaleX / originalWorldWidth,
-                        scaleY / originalWorldHeight,
+                        desiredWorldWidth / spriteWorldWidth,
+                        desiredWorldHeight / spriteWorldHeight,
                         1f
                     );
-
-                    if (pieceObj.GetComponent<BoxCollider2D>() == null)
-                         pieceObj.AddComponent<BoxCollider2D>();
+                    PolygonCollider2D poly = pieceObj.GetComponent<PolygonCollider2D>();
+                    if (poly != null) {
+                        // השמדה ויצירה מחדש מכריחה את יוניטי לחשב את גבולות הלחיצה לפי הצורה החדשה
+                        DestroyImmediate(poly);
+                        pieceObj.AddComponent<PolygonCollider2D>();
+}
+                    // if (pieceObj.GetComponent<BoxCollider2D>() == null)
+                    //      pieceObj.AddComponent<BoxCollider2D>();
 
                     createdPieces.Add(pieceObj.transform);
                 }

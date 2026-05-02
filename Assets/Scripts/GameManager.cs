@@ -216,7 +216,7 @@ public class GameManager : MonoBehaviour
           float randomY = UnityEngine.Random.Range(-safeY, safeY);
 
           // Z=-5 ensures the pieces are above the background (which is usually at 0)
-          piece.localPosition = new Vector3(randomX, randomY, -5.0f);
+          piece.localPosition = new Vector3(randomX, randomY, 0f);
           
           Collider2D col = piece.GetComponent<Collider2D>();
           if(col != null) col.enabled = true;
@@ -318,43 +318,93 @@ public class GameManager : MonoBehaviour
   }
 
   // Update is called once per frame
+  // void Update()
+  // {
+  //   if (!isGameActive || pieces == null || pieces.Count == 0) return;
+  //   if (isTimerRunning)
+  //   {
+  //       currentElapsedTime += Time.deltaTime;
+  //       UpdateTimerDisplay();
+  //   }
+  //   // Debug.Log("Update function running.");
+  //   if (Input.GetMouseButtonDown(0))
+  //   {
+  //     RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
+  //     if (hit)
+  //     {
+  //       // Everything is moveable, so we don't need to check it's a Piece.
+  //       draggingPiece = hit.transform;
+  //       offset = draggingPiece.position - Camera.main.ScreenToWorldPoint(Input.mousePosition);
+  //       offset += Vector3.back;
+  //     }
+  //   }
+
+  //   // When we release the mouse button stop dragging.
+  //   if (draggingPiece && Input.GetMouseButtonUp(0))
+  //   {
+  //     SnapAndDisableIfCorrect();
+  //     draggingPiece.position += Vector3.forward;
+  //     draggingPiece = null;
+  //   }
+
+  //   // Set the dragged piece position to the position of the mouse.
+  //   if (draggingPiece)
+  //   {
+  //     Vector3 newPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+  //     // newPosition.z = draggingPiece.position.z;
+  //     newPosition += offset;
+  //     draggingPiece.position = newPosition;
+  //   }
+  // }
   void Update()
   {
-    if (!isGameActive || pieces == null || pieces.Count == 0) return;
-    if (isTimerRunning)
-    {
-        currentElapsedTime += Time.deltaTime;
-        UpdateTimerDisplay();
-    }
-    // Debug.Log("Update function running.");
-    if (Input.GetMouseButtonDown(0))
-    {
-      RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
-      if (hit)
+      if (!isGameActive || pieces == null || pieces.Count == 0) return;
+
+      if (isTimerRunning)
       {
-        // Everything is moveable, so we don't need to check it's a Piece.
-        draggingPiece = hit.transform;
-        offset = draggingPiece.position - Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        offset += Vector3.back;
+          currentElapsedTime += Time.deltaTime;
+          UpdateTimerDisplay();
       }
-    }
 
-    // When we release the mouse button stop dragging.
-    if (draggingPiece && Input.GetMouseButtonUp(0))
-    {
-      SnapAndDisableIfCorrect();
-      draggingPiece.position += Vector3.forward;
-      draggingPiece = null;
-    }
+      if (Input.GetMouseButtonDown(0))
+      {
+          // המרת מיקום העכבר לנקודה בעולם
+          Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+          Vector2 mousePos2D = new Vector2(mouseWorldPos.x, mouseWorldPos.y);
 
-    // Set the dragged piece position to the position of the mouse.
-    if (draggingPiece)
-    {
-      Vector3 newPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-      // newPosition.z = draggingPiece.position.z;
-      newPosition += offset;
-      draggingPiece.position = newPosition;
-    }
+          RaycastHit2D hit = Physics2D.Raycast(mousePos2D, Vector2.zero);
+          if (hit)
+          {
+              draggingPiece = hit.transform;
+              Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+              offset = draggingPiece.position - mousePos;
+              offset.z = 0; // מקבע את האופסט
+
+              // במקום להזיז ב-Z, נרים אותה ב-Layer כדי שתהיה מעל אחרות בזמן גרירה
+              SpriteRenderer sr = draggingPiece.GetComponent<SpriteRenderer>();
+              if (sr != null) sr.sortingOrder = 20; 
+          }
+      }
+
+      if (draggingPiece && Input.GetMouseButtonUp(0))
+      {
+          // החזרת ה-Layer למצב רגיל לפני ה-Snap
+          SpriteRenderer sr = draggingPiece.GetComponent<SpriteRenderer>();
+          if (sr != null) sr.sortingOrder = 10;
+
+          SnapAndDisableIfCorrect();
+          draggingPiece = null;
+      }
+
+      if (draggingPiece)
+      {
+          Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+          Vector3 newPos = mouseWorldPos + offset;
+          
+          // קיבוע ה-Z ל-0 מונע מהחתיכה להשתנות בגודל בזמן תנועה!
+          newPos.z = 0; 
+          draggingPiece.position = newPos;
+      }
   }
 
   private void UpdateTimerDisplay()
