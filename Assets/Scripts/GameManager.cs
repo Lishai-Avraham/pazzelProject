@@ -59,6 +59,7 @@ public class GameManager : MonoBehaviour
   private bool isGameActive = false;
   private float startTime;
   private double timeTaken;
+  private bool isDraggingPiece = false;
 
   public void StartGame(Texture2D jigsawTexture)
   {
@@ -372,10 +373,11 @@ public class GameManager : MonoBehaviour
           Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
           Vector2 mousePos2D = new Vector2(mouseWorldPos.x, mouseWorldPos.y);
 
-          RaycastHit2D hit = Physics2D.Raycast(mousePos2D, Vector2.zero);
+          RaycastHit2D hit = Physics2D.Raycast(mousePos2D, Vector2.zero, 0f, LayerMask.GetMask("PuzzlePiece"));
           if (hit)
           {
               draggingPiece = hit.transform;
+              isDraggingPiece = true;
               Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
               offset = draggingPiece.position - mousePos;
               offset.z = 0; // מקבע את האופסט
@@ -383,6 +385,10 @@ public class GameManager : MonoBehaviour
               // במקום להזיז ב-Z, נרים אותה ב-Layer כדי שתהיה מעל אחרות בזמן גרירה
               SpriteRenderer sr = draggingPiece.GetComponent<SpriteRenderer>();
               if (sr != null) sr.sortingOrder = 20; 
+          }
+          else
+          {
+            isDraggingPiece = false; // לחצנו על הרקע, לא על חלק
           }
       }
 
@@ -394,6 +400,7 @@ public class GameManager : MonoBehaviour
 
           SnapAndDisableIfCorrect();
           draggingPiece = null;
+          isDraggingPiece = false;
       }
 
       if (draggingPiece)

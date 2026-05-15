@@ -91,6 +91,8 @@ public class PythonJigsawGenerator : MonoBehaviour
                     GameObject pieceObj = Instantiate(prefab, parent);
                     pieceObj.name = $"Piece_{data.row}_{data.col}";
 
+                    pieceObj.layer = LayerMask.NameToLayer("PuzzlePiece");
+                    
                     // pieceObj.transform.localPosition = new Vector3(pieceObj.transform.localPosition.x, pieceObj.transform.localPosition.y, 0f);
                     pieceObj.transform.localPosition = Vector3.zero;
                     byte[] decodedBytes = Convert.FromBase64String(data.image);
@@ -138,7 +140,7 @@ public class PythonJigsawGenerator : MonoBehaviour
                         // השמדה ויצירה מחדש מכריחה את יוניטי לחשב את גבולות הלחיצה לפי הצורה החדשה
                         DestroyImmediate(poly);
                         pieceObj.AddComponent<PolygonCollider2D>();
-}
+                    }
                     // if (pieceObj.GetComponent<BoxCollider2D>() == null)
                     //      pieceObj.AddComponent<BoxCollider2D>();
 

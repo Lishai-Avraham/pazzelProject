@@ -201,7 +201,7 @@ public class ImageUploader : MonoBehaviour
         // Debug.Log("Update function running.");
         if (Input.GetMouseButtonDown(0))
         {
-        RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero);
+        RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(Input.mousePosition), Vector2.zero, 0f, LayerMask.GetMask("PuzzlePiece"));
         if (hit)
         {
             // Everything is moveable, so we don't need to check it's a Piece.
