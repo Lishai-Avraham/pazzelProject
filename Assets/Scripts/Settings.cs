@@ -15,7 +15,7 @@ public class Settings : MonoBehaviour
     private void Awake()
     {
         // TEMPORARY – run ONCE to reset old bad values
-        PlayerPrefs.DeleteAll();
+        // PlayerPrefs.DeleteAll();
 
         if (Instance != null && Instance != this)
         {
